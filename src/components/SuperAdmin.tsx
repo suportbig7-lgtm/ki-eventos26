@@ -21,7 +21,8 @@ import {
   getMessagingLogs, 
   clearMessagingLogs,
   testTwilioConnection,
-  testTwilioSend
+  testTwilioSend,
+  checkTwilioServerStatus
 } from '../services/messagingService';
 
 export interface SaaSPlanConfig {
@@ -136,6 +137,12 @@ export default function SuperAdmin({
   const [sendingTwilioTest, setSendingTwilioTest] = useState(false);
   const [testSendResult, setTestSendResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
   const [showTwilioSecret, setShowTwilioSecret] = useState(false);
+
+  const [serverTwilioStatus, setServerTwilioStatus] = useState<{ configured: boolean; accountSid: string | null; whatsappFrom: string } | null>(null);
+
+  useEffect(() => {
+    checkTwilioServerStatus().then(status => setServerTwilioStatus(status));
+  }, []);
 
   // Virgin reset confirmation modal
   const [showVirginResetModal, setShowVirginResetModal] = useState(false);
@@ -515,9 +522,9 @@ export default function SuperAdmin({
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {clients.slice(0, 5).map(c => (
+                  {clients.slice(0, 5).map((c, idx) => (
                     <div
-                      key={c.id}
+                      key={`${c.id || 'client'}-${idx}`}
                       onClick={() => { setReadOnlyClient(c); setIsReadOnlyModalOpen(true); }}
                       className="py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-xl transition-all cursor-pointer group"
                     >
@@ -616,11 +623,11 @@ export default function SuperAdmin({
                       </td>
                     </tr>
                   ) : (
-                    filteredClients.map(client => {
+                    filteredClients.map((client, idx) => {
                       const matchingAccounts = userAccounts.filter(acc => acc.clientId === client.id);
                       return (
                         <tr 
-                          key={client.id}
+                          key={`${client.id || 'client'}-${idx}`}
                           onClick={() => { setReadOnlyClient(client); setIsReadOnlyModalOpen(true); }}
                           className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
                         >
@@ -854,12 +861,20 @@ export default function SuperAdmin({
                       <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                         Integração Oficial Twilio WhatsApp
                       </h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        Servidor
-                      </span>
+                      {serverTwilioStatus?.configured ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Configurado no Servidor
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Aguardando Variáveis (.env)
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400">
-                      Disparo automático e assíncrono de tokens RSVP diretamente para o WhatsApp dos convidados
+                      Disparo automático e assíncrono de convites e tokens RSVP. Credenciais protegidas exclusivamente no servidor.
                     </p>
                   </div>
                 </div>
@@ -870,8 +885,10 @@ export default function SuperAdmin({
                     onClick={async () => {
                       setTestingTwilio(true);
                       setTwilioTestResult(null);
-                      const res = await testTwilioConnection(msgConfig);
+                      const res = await testTwilioConnection();
                       setTwilioTestResult(res);
+                      const status = await checkTwilioServerStatus();
+                      setServerTwilioStatus(status);
                       setTestingTwilio(false);
                     }}
                     disabled={testingTwilio}
@@ -904,10 +921,38 @@ export default function SuperAdmin({
                 </div>
               )}
 
-              {/* Credentials are server-side only; never collect or store API secrets in the browser. */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                <strong className="block mb-1">Credenciais protegidas no servidor</strong>
-                Por segurança, as credenciais Twilio já não são introduzidas nem guardadas neste navegador. Configure <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_API_KEY_SID</code>, <code>TWILIO_API_KEY_SECRET</code> (ou <code>TWILIO_AUTH_TOKEN</code>) e <code>TWILIO_WHATSAPP_FROM</code> nas variáveis de ambiente da Vercel. Depois, publique novamente a aplicação.
+              {/* Twilio Server Security & Environment Status Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
+                    Twilio Account SID (Servidor)
+                  </span>
+                  <div className="font-mono text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                    {serverTwilioStatus?.accountSid || (serverTwilioStatus?.configured ? 'Configurado no Servidor' : 'Não definido no .env')}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Variável: TWILIO_ACCOUNT_SID</span>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
+                    Auth Token / API Secret
+                  </span>
+                  <div className="font-mono text-[12px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span>{serverTwilioStatus?.configured ? 'Protegido no Servidor' : 'Ausente no .env'}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Variável: TWILIO_AUTH_TOKEN</span>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
+                    Remetente WhatsApp (From)
+                  </span>
+                  <div className="font-mono text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                    {serverTwilioStatus?.whatsappFrom || '+14155238886'}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Sandbox padrão ou número aprovado</span>
+                </div>
               </div>
 
               {/* Twilio Sandbox & Live Test Dispatcher */}

@@ -577,7 +577,12 @@ export default function App() {
   };
 
   const handleAddClient = (client: ClientWeddingSaaS, accountsToAdd?: { username: string; pass: string }[]) => {
-    setClients(prev => [...prev, client]);
+    setClients(prev => {
+      if (prev.some(c => c.id === client.id)) {
+        return prev.map(c => c.id === client.id ? client : c);
+      }
+      return [...prev, client];
+    });
     if (accountsToAdd && accountsToAdd.length > 0) {
       setUserAccounts(prev => [
         ...prev,

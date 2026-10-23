@@ -131,7 +131,18 @@ export function sanitizeConfigForStorage(config?: WeddingConfig): WeddingConfig 
  */
 export function sanitizeClientsList(clients: ClientWeddingSaaS[]): ClientWeddingSaaS[] {
   if (!Array.isArray(clients)) return [];
-  return clients.map(c => {
+  const seenIds = new Set<string>();
+  const uniqueClients: ClientWeddingSaaS[] = [];
+
+  for (const c of clients) {
+    if (!c || !c.id) continue;
+    if (!seenIds.has(c.id)) {
+      seenIds.add(c.id);
+      uniqueClients.push(c);
+    }
+  }
+
+  return uniqueClients.map(c => {
     let leanConfig: WeddingConfig = c.config;
     if (c.config) {
       leanConfig = {

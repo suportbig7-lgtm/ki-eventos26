@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Save, Check, BookOpen, Music, Map, Palette, Layout, Heart, Camera, 
@@ -24,22 +24,38 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
   const [activeTab, setActiveTab] = useState<EditorSectionTab>('couple');
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
-  const [editorConfig, setEditorConfig] = useState<WeddingConfig>({ ...config });
+  const [editorConfig, setEditorConfig] = useState<WeddingConfig>(() => ({ ...config }));
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
+  const lastSavedJsonRef = useRef<string>(JSON.stringify(config));
 
+  // Sync from props only when incoming configuration changed externally
   useEffect(() => {
-    setEditorConfig({ ...config });
+    const incomingJson = JSON.stringify(config);
+    if (incomingJson !== lastSavedJsonRef.current) {
+      lastSavedJsonRef.current = incomingJson;
+      setEditorConfig({ ...config });
+    }
   }, [config]);
 
+  // Pure updater for local editor state - never triggers parent setState during React render
   const updateConfig = (updater: (prev: WeddingConfig) => WeddingConfig) => {
-    setEditorConfig(prev => {
-      const next = updater(prev);
-      onSave(next);
-      return next;
-    });
+    setEditorConfig(prev => updater(prev));
   };
+
+  // Safe debounced synchronization to parent App outside render cycle
+  useEffect(() => {
+    const currentJson = JSON.stringify(editorConfig);
+    if (currentJson === lastSavedJsonRef.current) return;
+
+    const timer = setTimeout(() => {
+      lastSavedJsonRef.current = currentJson;
+      onSave(editorConfig);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [editorConfig, onSave]);
 
   const [visibleSections, setVisibleSections] = useState({
     story: true,
@@ -63,6 +79,7 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
   };
 
   const handleSave = () => {
+    lastSavedJsonRef.current = JSON.stringify(editorConfig);
     onSave(editorConfig);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);

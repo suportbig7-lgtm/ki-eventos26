@@ -1,4 +1,0 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-export function twilioConfig() { return { accountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || '', apiKeySid: process.env.TWILIO_API_KEY_SID?.trim() || '', apiKeySecret: process.env.TWILIO_API_KEY_SECRET?.trim() || '', authToken: process.env.TWILIO_AUTH_TOKEN?.trim() || '', from: process.env.TWILIO_WHATSAPP_FROM?.trim() || '' }; }
-export function twilioAuth(c: ReturnType<typeof twilioConfig>) { if(c.apiKeySid && c.apiKeySecret) return 'Basic '+Buffer.from(`${c.apiKeySid}:${c.apiKeySecret}`).toString('base64'); if(c.accountSid && c.authToken) return 'Basic '+Buffer.from(`${c.accountSid}:${c.authToken}`).toString('base64'); return ''; }
-export function method(req: VercelRequest, res: VercelResponse, expected: string) { if(req.method!==expected){res.setHeader('Allow',expected);res.status(405).json({success:false,error:'Método não permitido.'});return false;} return true; }

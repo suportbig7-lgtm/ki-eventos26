@@ -17,27 +17,35 @@ const LOGS_KEY = 'kutxi_messaging_logs';
 export const DEFAULT_MESSAGING_CONFIG: MessagingWebhookConfig = {
   webhookUrl: '',
   apiToken: '',
-  provider: 'twilio', // Twilio credentials are configured only on the server
+  provider: 'twilio', // Twilio is configured as primary provider
   autoSendOnGuestCreated: true,
   senderNumber: '+14155238886',
   customTemplate: 'Olá, {guestName}! 💍 É com imensa honra e alegria que {groom} & {bride} convidam você para o seu casamento em {date}.\n\n📌 Mesa Reservada: {table}\n🎟️ Assentos: {seats}\n\nAcesse seu passe digital e confirme sua presença:\n🔗 {link}\n(Token: {token})',
   twilioAccountSid: '',
   twilioApiKeySid: '',
   twilioAuthToken: '',
-  twilioWhatsAppFrom: '',
+  twilioWhatsAppFrom: '+14155238886',
   twilioConnected: false
 };
 
 /**
  * Retrieve current messaging API configuration
+ * Safely strips any legacy credentials from browser storage
  */
 export function getMessagingConfig(): MessagingWebhookConfig {
   try {
     const saved = safeGetItem(CONFIG_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Never read or persist Twilio secrets from browser storage. Credentials belong on the server.
-      return { ...DEFAULT_MESSAGING_CONFIG, ...parsed, twilioAccountSid: '', twilioApiKeySid: '', twilioAuthToken: '', twilioWhatsAppFrom: '', twilioConnected: false };
+      // Ensure no raw secrets remain in client storage
+      delete parsed.twilioAuthToken;
+      delete parsed.twilioApiKeySid;
+      return { 
+        ...DEFAULT_MESSAGING_CONFIG, 
+        ...parsed, 
+        twilioAuthToken: '', 
+        twilioApiKeySid: '' 
+      };
     }
   } catch (e) {
     console.warn('[messagingService] Error reading config:', e);
@@ -50,8 +58,7 @@ export function getMessagingConfig(): MessagingWebhookConfig {
  */
 export function saveMessagingConfig(config: Partial<MessagingWebhookConfig>): MessagingWebhookConfig {
   const current = getMessagingConfig();
-  const safeConfig = { ...config, twilioAccountSid: '', twilioApiKeySid: '', twilioAuthToken: '', twilioWhatsAppFrom: '' };
-  const updated: MessagingWebhookConfig = { ...current, ...safeConfig, twilioAccountSid: '', twilioApiKeySid: '', twilioAuthToken: '', twilioWhatsAppFrom: '' };
+  const updated: MessagingWebhookConfig = { ...current, ...config };
   safeSetItem(CONFIG_KEY, JSON.stringify(updated));
   return updated;
 }
@@ -131,15 +138,32 @@ export function formatGuestMessage(guest: Guest, config: WeddingConfig): string 
 }
 
 /**
- * Test connectivity with Twilio API through backend proxy
+ * Check if the backend server has Twilio credentials configured in process.env
  */
-export async function testTwilioConnection(customConfig?: Partial<MessagingWebhookConfig>): Promise<{ success: boolean; message: string; data?: any }> {
-  const cfg = { ...getMessagingConfig(), ...customConfig };
+export async function checkTwilioServerStatus(): Promise<{ configured: boolean; accountSid: string | null; whatsappFrom: string }> {
+  try {
+    const res = await fetch('/api/twilio/status');
+    if (res.ok) {
+      const data = await res.json();
+      saveMessagingConfig({ twilioConnected: Boolean(data.configured) });
+      return data;
+    }
+  } catch (e) {
+    console.warn('[messagingService] Server status check failed:', e);
+  }
+  return { configured: false, accountSid: null, whatsappFrom: '+14155238886' };
+}
+
+/**
+ * Test connectivity with Twilio API through backend proxy.
+ * Note: Credentials are read strictly by the server from process.env.
+ */
+export async function testTwilioConnection(): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     const response = await fetch('/api/twilio/test-connection', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify({}) // Server reads process.env exclusively
     });
 
     const data = await response.json();
@@ -148,23 +172,26 @@ export async function testTwilioConnection(customConfig?: Partial<MessagingWebho
       return { success: true, message: data.message || 'Twilio autenticado com sucesso!', data };
     } else {
       saveMessagingConfig({ twilioConnected: false });
-      return { success: false, message: data.error || 'Falha na validação das credenciais Twilio' };
+      return { success: false, message: data.error || 'Credenciais do Twilio não configuradas no servidor' };
     }
   } catch (err: any) {
-    return { success: false, message: `Erro de conexão: ${err.message}` };
+    saveMessagingConfig({ twilioConnected: false });
+    return { success: false, message: `Erro de conexão com o servidor: ${err.message}` };
   }
 }
 
 /**
- * Test dispatching a real WhatsApp message via Twilio
+ * Test dispatching a real WhatsApp message via Twilio (uses server environment credentials)
  */
 export async function testTwilioSend(phone: string, text: string): Promise<{ success: boolean; message?: string; error?: string }> {
-  const cfg = getMessagingConfig();
   try {
     const response = await fetch('/api/twilio/send-whatsapp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: phone, message: text })
+      body: JSON.stringify({
+        to: phone,
+        message: text
+      })
     });
 
     const data = await response.json();
@@ -250,8 +277,7 @@ export async function dispatchRsvpWhatsApp(
           to: cleanPhone,
           message: messageText,
           guestName: guest.name,
-          rsvpToken: guest.rsvpToken,
-          // Credentials and sender are selected securely by the server environment.
+          rsvpToken: guest.rsvpToken
         }),
         signal: controller.signal
       });
