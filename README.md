@@ -1,11 +1,26 @@
-<div align="center">
+# Kutxi — aplicação web
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+## Requisitos
+- Node.js 20 ou superior (recomendado Node.js 22)
+- npm
 
-  <h1>Built with AI Studio</h2>
+## Executar localmente
+1. Extraia o ZIP e abra esta pasta no VS Code.
+2. Execute `npm install`.
+3. Copie `.env.example` para `.env.local` e preencha apenas os serviços que realmente utilizar. Não publique `.env.local`.
+4. Execute `npm run dev` e abra `http://localhost:3000`.
+5. Valide a compilação com `npm run build`.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+A aplicação pode abrir sem credenciais Twilio, mas o envio real de WhatsApp ficará desativado até configurar as variáveis no servidor. Nenhum envio real é executado durante o build.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Publicar no GitHub
+Carregue os ficheiros e pastas desta pasta para o repositório, incluindo `api/`, `lib/`, `vercel.json` e `package.json`. Não carregue `node_modules`, `dist`, `.env.local` nem outros ficheiros `.env`.
 
-</div>
+## Publicar na Vercel
+Importe o repositório no painel da Vercel. O projeto usa Vite e gera a pasta `dist`. Configure as variáveis necessárias em Project Settings → Environment Variables. Para Twilio, use `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET` (preferível) ou `TWILIO_AUTH_TOKEN`, e `TWILIO_WHATSAPP_FROM`. Depois de alterar variáveis, faça novo deployment.
+
+## Supabase e Gemini
+Configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` para o Supabase, se necessário. Use somente a chave anon/public no frontend, com Row Level Security ativada. Nunca coloque chaves service_role no frontend. Configure `GEMINI_API_KEY` apenas no servidor se alguma funcionalidade de backend precisar dela.
+
+## Segurança
+As credenciais anteriormente incluídas no projeto foram removidas desta versão. Se eram reais, revogue-as/rote-as no fornecedor. A remoção do código não invalida uma credencial exposta.

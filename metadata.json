@@ -1,0 +1,6 @@
+{
+  "name": "Kutxi",
+  "description": "Plataforma SaaS ultra-premium de convites de casamento digitais, RSVP em tempo real, mensageria WhatsApp, faturamento local em Kwanzas (AOA) e controle de portaria por QR Code.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
