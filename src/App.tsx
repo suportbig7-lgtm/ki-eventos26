@@ -5,14 +5,16 @@ import {
   Sparkles, Check, ArrowRight, BookOpen, Music, 
   LogIn, LogOut, CheckCircle2, ChevronRight, Menu, X, Gift, Lock,
   Database, Sun, Moon, Wifi, WifiOff, Settings, AlertCircle,
-  LayoutDashboard, BarChart3, Calendar, FileText, HelpCircle, Bell, MessageSquare, Search, ChevronDown, ShoppingBag
+  LayoutDashboard, BarChart3, Calendar, FileText, HelpCircle, Bell, MessageSquare, Search, ChevronDown, ShoppingBag,
+  Cloud, RefreshCw
 } from 'lucide-react';
 
 // Types and defaultConfig
 import { Guest, GuestStatus, WeddingConfig, ClientWeddingSaaS, SystemAuditLog, UserAccount } from './types';
 import { 
   INITIAL_WEDDING_CONFIG, INITIAL_GUESTS, 
-  INITIAL_CLIENTS, INITIAL_AUDIT_LOGS, createBlankWeddingConfig 
+  INITIAL_CLIENTS, INITIAL_AUDIT_LOGS, createBlankWeddingConfig,
+  DEFAULT_PLANS, SaaSPlanConfig
 } from './data/defaultConfig';
 
 // Dashboard & Visual modules
@@ -188,6 +190,50 @@ export default function App() {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
 
+  // Dynamic SaaS Plans synced with SuperAdmin pricing changes
+  const [saasPlans, setSaasPlans] = useState<SaaSPlanConfig[]>(() => {
+    try {
+      const saved = localStorage.getItem('kutxi_saas_plans');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_PLANS;
+  });
+
+  useEffect(() => {
+    const handlePlansUpdated = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setSaasPlans(e.detail);
+      } else {
+        const saved = localStorage.getItem('kutxi_saas_plans');
+        if (saved) {
+          try {
+            setSaasPlans(JSON.parse(saved));
+          } catch (err) {}
+        }
+      }
+    };
+    window.addEventListener('kutxi_saas_plans_updated', handlePlansUpdated);
+    window.addEventListener('storage', handlePlansUpdated);
+    return () => {
+      window.removeEventListener('kutxi_saas_plans_updated', handlePlansUpdated);
+      window.removeEventListener('storage', handlePlansUpdated);
+    };
+  }, []);
+
+  // Animated feedback banner for login and logout
+  const [authToast, setAuthToast] = useState<{
+    type: 'login' | 'logout';
+    title: string;
+    description: string;
+  } | null>(null);
+
+  const showAuthToast = (type: 'login' | 'logout', title: string, description: string) => {
+    setAuthToast({ type, title, description });
+    setTimeout(() => {
+      setAuthToast(null);
+    }, 4000);
+  };
+
   // Wedding Config (Starts virgin and clean for new clients, completely isolated)
   const [weddingConfig, setWeddingConfig] = useState<WeddingConfig>(() => {
     try {
@@ -264,6 +310,95 @@ export default function App() {
   useEffect(() => {
     safeSetItem('kutxi_active_role', activeUserRole);
   }, [activeUserRole]);
+
+  // --- REAL-TIME BI-DIRECTIONAL MULTI-DEVICE SYNCHRONIZATION ---
+  const [isServerSyncing, setIsServerSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
+  const performServerSync = async (forcePushLocal = false) => {
+    setIsServerSyncing(true);
+    try {
+      // 1. Gather any accounts & clients present in this device's storage
+      let localAccounts: UserAccount[] = userAccounts;
+      try {
+        const raw = localStorage.getItem('kutxi_user_accounts');
+        if (raw) localAccounts = JSON.parse(raw);
+      } catch (e) {}
+
+      let localClients: ClientWeddingSaaS[] = clients;
+      try {
+        const raw = localStorage.getItem('kutxi_clients');
+        if (raw) localClients = JSON.parse(raw);
+      } catch (e) {}
+
+      // 2. Synchronize bidirectionally with the server
+      const serverState = await dbService.serverSync.push({
+        userAccounts: localAccounts,
+        clients: localClients,
+        saasPlans: saasPlans
+      });
+
+      if (serverState) {
+        // Sync accounts
+        if (Array.isArray(serverState.userAccounts) && serverState.userAccounts.length > 0) {
+          setUserAccounts(serverState.userAccounts);
+          safeSetItem('kutxi_user_accounts', JSON.stringify(serverState.userAccounts));
+        }
+
+        // Sync clients
+        if (Array.isArray(serverState.clients) && serverState.clients.length > 0) {
+          setClients(serverState.clients);
+          safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(serverState.clients)));
+        }
+
+        // Sync plans
+        if (Array.isArray(serverState.saasPlans) && serverState.saasPlans.length > 0) {
+          setSaasPlans(serverState.saasPlans);
+          safeSetItem('kutxi_saas_plans', JSON.stringify(serverState.saasPlans));
+        }
+
+        // Sync current active wedding config from server if available
+        if (activeClientId && serverState.weddingConfigs && serverState.weddingConfigs[activeClientId]) {
+          const cloudConfig = serverState.weddingConfigs[activeClientId];
+          setWeddingConfig(cloudConfig);
+          safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(cloudConfig));
+        }
+
+        // Sync current active guests from server if available
+        if (activeClientId && serverState.guests && serverState.guests[activeClientId]) {
+          const cloudGuests = serverState.guests[activeClientId];
+          setGuests(cloudGuests);
+          safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(cloudGuests));
+        }
+
+        setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
+      }
+    } catch (err) {
+      console.warn('[performServerSync] notice:', err);
+    } finally {
+      setIsServerSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial sync immediately on mount (pushes any local accounts up to the server)
+    performServerSync(true);
+
+    // Periodic sync every 25 seconds
+    const interval = setInterval(() => {
+      performServerSync(false);
+    }, 25000);
+
+    const handleFocus = () => {
+      performServerSync(false);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [activeClientId]);
 
   const loadedClientIdRef = useRef<string>(activeClientId);
 
@@ -456,6 +591,13 @@ export default function App() {
       safeSetItem('kutxi_wedding_config', JSON.stringify(updated));
       dbService.weddingConfig.save(activeClientId, updated).catch(() => {});
 
+      // Instantly sync with server database
+      fetch(`/api/wedding-config/${activeClientId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      }).catch(() => {});
+
       // Instant synchronization across the app
       setClients(prev => {
         const next = prev.map(c => {
@@ -488,8 +630,10 @@ export default function App() {
    * "Atualize a função 'handleAddGuest' para disparar automaticamente a notificação quando um novo convidado for inserido. e garanta que o log de erros registre cada falha de envio., garantindo que o disparo ocorra de forma assíncrona para não bloquear a interface."
    */
   const handleAddGuest = (guest: Guest) => {
+    let nextList: Guest[] = [];
     setGuests(prev => {
       const next = [guest, ...prev];
+      nextList = next;
       if (activeClientId) {
         safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(next));
         if (activeClientId === 'client_1') {
@@ -498,6 +642,15 @@ export default function App() {
       }
       return next;
     });
+
+    // Sync to server database
+    if (activeClientId) {
+      fetch(`/api/guests/${activeClientId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guests: nextList })
+      }).catch(() => {});
+    }
 
     addAuditLog('Gestão de Convidados', 'Convidado Adicionado', `Convidado "${guest.name}" cadastrado. Token RSVP gerado: ${guest.rsvpToken}`, 'rsvp');
 
@@ -517,8 +670,10 @@ export default function App() {
   };
 
   const handleUpdateGuest = (updated: Guest) => {
+    let nextList: Guest[] = [];
     setGuests(prev => {
       const next = prev.map(g => g.id === updated.id ? updated : g);
+      nextList = next;
       if (activeClientId) {
         safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(next));
         if (activeClientId === 'client_1') {
@@ -527,13 +682,24 @@ export default function App() {
       }
       return next;
     });
+
+    if (activeClientId) {
+      fetch(`/api/guests/${activeClientId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guests: nextList })
+      }).catch(() => {});
+    }
+
     addAuditLog('Gestão de Convidados', 'Convidado Atualizado', `Parâmetros do convidado "${updated.name}" modificados.`, 'rsvp');
   };
 
   const handleDeleteGuest = (id: string) => {
     const guest = guests.find(g => g.id === id);
+    let nextList: Guest[] = [];
     setGuests(prev => {
       const next = prev.filter(g => g.id !== id);
+      nextList = next;
       if (activeClientId) {
         safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(next));
         if (activeClientId === 'client_1') {
@@ -542,6 +708,15 @@ export default function App() {
       }
       return next;
     });
+
+    if (activeClientId) {
+      fetch(`/api/guests/${activeClientId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guests: nextList })
+      }).catch(() => {});
+    }
+
     if (guest) {
       addAuditLog('Gestão de Convidados', 'Convidado Excluído', `Convidado "${guest.name}" removido da lista.`, 'rsvp');
     }
@@ -549,8 +724,10 @@ export default function App() {
 
   const handleBulkStatusUpdate = (ids: string[], status: 'Confirmed' | 'Pending' | 'Declined') => {
     const pStatus = status === 'Confirmed' ? 'Confirmado' : status === 'Declined' ? 'Recusado' : 'Pendente';
+    let nextList: Guest[] = [];
     setGuests(prev => {
       const next = prev.map(g => ids.includes(g.id) ? { ...g, status, confirmedAt: status === 'Confirmed' ? new Date().toISOString() : undefined } : g);
+      nextList = next;
       if (activeClientId) {
         safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(next));
         if (activeClientId === 'client_1') {
@@ -559,16 +736,38 @@ export default function App() {
       }
       return next;
     });
+
+    if (activeClientId) {
+      fetch(`/api/guests/${activeClientId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guests: nextList })
+      }).catch(() => {});
+    }
+
     addAuditLog('Gestão de Convidados', 'Status em Lote', `Atualizado status de ${ids.length} convidados para "${pStatus}".`, 'rsvp');
   };
 
   const handleDoorCheckIn = (guestId: string, plusOnesCount: number) => {
-    setGuests(prev => prev.map(g => g.id === guestId ? {
-      ...g,
-      checkedIn: true,
-      plusOnesConfirmed: plusOnesCount,
-      checkedInAt: new Date().toISOString()
-    } : g));
+    let nextList: Guest[] = [];
+    setGuests(prev => {
+      const next = prev.map(g => g.id === guestId ? {
+        ...g,
+        checkedIn: true,
+        plusOnesConfirmed: plusOnesCount,
+        checkedInAt: new Date().toISOString()
+      } : g);
+      nextList = next;
+      return next;
+    });
+
+    if (activeClientId) {
+      fetch(`/api/guests/${activeClientId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guests: nextList })
+      }).catch(() => {});
+    }
     
     const guest = guests.find(g => g.id === guestId);
     if (guest) {
@@ -578,23 +777,35 @@ export default function App() {
 
   const handleAddClient = (client: ClientWeddingSaaS, accountsToAdd?: { username: string; pass: string }[]) => {
     setClients(prev => {
-      if (prev.some(c => c.id === client.id)) {
-        return prev.map(c => c.id === client.id ? client : c);
-      }
-      return [...prev, client];
+      const next = prev.some(c => c.id === client.id) ? prev.map(c => c.id === client.id ? client : c) : [...prev, client];
+      safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(next)));
+      return next;
     });
+
+    let newAccountsList = userAccounts;
+    let createdAccounts: UserAccount[] = [];
     if (accountsToAdd && accountsToAdd.length > 0) {
-      setUserAccounts(prev => [
-        ...prev,
-        ...accountsToAdd.map(acc => ({
-          username: acc.username,
-          pass: acc.pass,
-          clientId: client.id,
-          clientName: client.clientName,
-          role: 'couple' as const
-        }))
-      ]);
+      createdAccounts = accountsToAdd.map(acc => ({
+        username: acc.username,
+        pass: acc.pass,
+        clientId: client.id,
+        clientName: client.clientName,
+        role: 'couple' as const
+      }));
+      newAccountsList = [...userAccounts, ...createdAccounts];
+      setUserAccounts(newAccountsList);
+      safeSetItem('kutxi_user_accounts', JSON.stringify(newAccountsList));
     }
+
+    // Instantly push to server database so client device can log in immediately from anywhere
+    dbService.serverSync.push({
+      clients: [client],
+      userAccounts: createdAccounts,
+      weddingConfigs: client.config ? { [client.id]: client.config } : undefined
+    }).catch(err => {
+      console.warn('Background server sync error on add client:', err);
+    });
+
     addAuditLog('Super Admin', 'Novo Casal Registrado', `Assinatura iniciada para "${client.clientName}" no plano ${client.plan}.`, 'system');
   };
 
@@ -705,6 +916,65 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Animated Login / Logout Floating Feedback Toast */}
+      <AnimatePresence>
+        {authToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="fixed top-5 right-5 z-50 max-w-sm w-full bg-white/95 dark:bg-[#18161B]/95 backdrop-blur-md rounded-2xl shadow-2xl border border-stone-200/90 dark:border-stone-800/90 p-4 overflow-hidden pointer-events-auto"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-3">
+              <motion.div 
+                initial={{ scale: 0.6, rotate: -15 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
+                  authToast.type === 'login' 
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+                    : 'bg-[#8E2840]/15 text-[#8E2840] dark:text-rose-400 border border-[#8E2840]/30'
+                }`}
+              >
+                {authToast.type === 'login' ? (
+                  <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
+                ) : (
+                  <LogOut className="w-4 h-4 stroke-[2.2]" />
+                )}
+              </motion.div>
+              <div className="flex-1 min-w-0 pr-1">
+                <h4 className="text-xs font-bold text-stone-900 dark:text-white leading-tight">
+                  {authToast.title}
+                </h4>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 leading-snug">
+                  {authToast.description}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuthToast(null)}
+                aria-label="Fechar notificação"
+                className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {/* Smooth animated progress line */}
+            <motion.div 
+              initial={{ width: '100%' }}
+              animate={{ width: '0%' }}
+              transition={{ duration: 4, ease: 'linear' }}
+              className={`h-0.5 mt-3 -mx-4 -mb-4 ${
+                authToast.type === 'login' ? 'bg-emerald-500' : 'bg-[#8E2840]'
+              }`}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* TOP HEADER - Luminous Frosted Bar */}
       {!isPortariaLocked && !isInviteLocked && (
         <header className="bg-white/85 dark:bg-[#18161B]/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800/80 text-stone-800 dark:text-stone-100 sticky top-0 z-40 shadow-[0_1px_3px_0_rgba(0,0,0,0.02)]">
@@ -770,6 +1040,19 @@ export default function App() {
 
               {/* Right Controls: Dark Mode, Sleek Supabase Indicator & Profile */}
               <div className="flex items-center gap-2">
+                {/* Real-time Multi-device Cloud Sync Status */}
+                <button
+                  type="button"
+                  onClick={() => performServerSync(true)}
+                  disabled={isServerSyncing}
+                  className="p-2 rounded-xl bg-stone-100/80 dark:bg-stone-850 border border-stone-200/70 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200/60 transition-all cursor-pointer flex items-center gap-1.5"
+                  title={lastSyncTime ? `Sincronização Ativa às ${lastSyncTime}. Clique para sincronizar agora.` : 'Sincronizar com o servidor'}
+                  aria-label="Sincronizar com o servidor"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
+                  <span className={`w-2 h-2 rounded-full ${isServerSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-500'}`} />
+                </button>
+
                 {/* Dark Mode Toggle */}
                 <button
                   type="button"
@@ -808,11 +1091,13 @@ export default function App() {
 
                     <button
                       onClick={() => {
+                        const previousName = isSuperAdmin ? 'Super Administrador' : activeUser;
                         setIsAuthenticated(false);
                         safeSetItem('kutxi_is_authenticated', 'false');
                         setActiveUser('superadmin');
                         setPersona('saas-landing');
                         addAuditLog('Segurança', 'Logout Realizado', 'Encerramento de sessão.', 'auth');
+                        showAuthToast('logout', 'Sessão Encerrada com Sucesso', `Até breve, ${previousName}! Os seus dados foram salvos com segurança.`);
                       }}
                       className="p-2 bg-stone-100/80 hover:bg-rose-50 dark:bg-stone-850 dark:hover:bg-rose-950/40 border border-stone-200/70 dark:border-stone-800 text-stone-500 hover:text-[#8E2840] dark:text-stone-400 dark:hover:text-rose-300 rounded-xl transition-colors cursor-pointer"
                       title="Sair"
@@ -953,106 +1238,72 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto text-left text-xs">
-                  {[
-                    {
-                      name: 'Plano Grátis (Degustação)',
-                      price: '0 Kz',
-                      period: 'degustação',
-                      desc: 'Ideal para experimentar a plataforma e criar o seu convite.',
-                      perk: 'Até 20 Convites Digitais',
-                      features: [
-                        'Até 20 convites digitais incluídos',
-                        'Página do convite interativo ativa',
-                        'Confirmação de presença (RSVP simples)',
-                        'Acesso restrito a funções avançadas (sem scanner de portaria QR, sem trilha ilimitada, sem exportação completa)'
-                      ],
-                      cta: 'Começar Grátis (20 Convites)',
-                      highlight: false
-                    },
-                    {
-                      name: 'Plano Essencial',
-                      price: '45.000 Kz',
-                      period: 'único',
-                      desc: 'Para celebrações intimistas e familiares.',
-                      perk: 'Download do Convite em PDF',
-                      features: ['Até 100 convidados', '1 GB de armazenamento', 'Download em PDF formato A5', 'Suporte por e-mail'],
-                      cta: 'Escolher Essencial',
-                      highlight: false
-                    },
-                    {
-                      name: 'Plano Premium',
-                      price: '135.000 Kz',
-                      period: 'único',
-                      desc: 'O mais querido para casamentos tradicionais.',
-                      perk: 'Mural de Fotos & Trilha Spotify',
-                      features: ['Até 300 convidados', '5 GB de fotos em alta resolução', 'Trilha sonora Spotify incorporada', 'Moderação de mensagens'],
-                      cta: 'Escolher Premium',
-                      highlight: false
-                    },
-                    {
-                      name: 'Plano Luxo VIP',
-                      price: '225.000 Kz',
-                      period: 'único',
-                      desc: 'A experiência completa e sem limites.',
-                      perk: 'Convidados Ilimitados & Scanner QR',
-                      features: ['Convidados ilimitados', 'Portaria inteligente com scanner', 'Disparo automático via Webhook', 'Suporte VIP WhatsApp'],
-                      cta: 'Assinar Luxo VIP',
-                      highlight: true
-                    }
-                  ].map((tier, idx) => (
-                    <div
-                      key={idx}
-                      className={`bg-white dark:bg-stone-900/90 p-6 rounded-2xl border flex flex-col justify-between transition-all ${
-                        tier.highlight 
-                          ? 'border-[#B89758] dark:border-[#B89758]/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] ring-1 ring-[#B89758]/30 scale-[1.02]' 
-                          : 'border-stone-200/80 dark:border-stone-800 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.03)]'
-                      }`}
-                    >
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-stone-500 dark:text-stone-400 text-[10px] uppercase tracking-wider">{tier.name}</span>
-                            {tier.highlight && (
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#9E7A36] bg-[#FAF6EE] dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-[#E9DEC6] dark:border-amber-900/50">
-                                Mais Escolhido
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-2xl font-bold font-serif text-stone-900 dark:text-white mt-1.5">{tier.price}</div>
-                          <span className="text-[10px] text-stone-400">pagamento {tier.period}</span>
-                        </div>
+                  {saasPlans.map((tier) => {
+                    const isHighlight = tier.popular || tier.badge === 'Mais Escolhido' || tier.id === 'luxury';
+                    const formattedPrice = tier.price === 0 ? '0 Kz' : `${Number(tier.price).toLocaleString('pt-AO')} Kz`;
+                    const ctaText = tier.price === 0 
+                      ? 'Começar Grátis (20 Convites)' 
+                      : tier.id === 'basic' ? 'Escolher Essencial' 
+                      : tier.id === 'premium' ? 'Escolher Premium' 
+                      : 'Assinar Luxo VIP';
 
-                        {/* Exclusive perk highlight */}
-                        <div className="p-3 bg-[#FAF6EE] dark:bg-amber-950/30 rounded-xl border border-[#E9DEC6]/70 dark:border-amber-900/40 text-[11px] text-[#9E7A36] dark:text-amber-200 font-medium">
-                          ✦ {tier.perk}
-                        </div>
-
-                        <ul className="space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800 text-[11px] text-stone-600 dark:text-stone-400 font-light">
-                          {tier.features.map((f, fIdx) => (
-                            <li key={fIdx} className="flex items-center gap-2">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>{f}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setSelectedPackage(tier.name);
-                          setAuthTab('register');
-                          setShowAuthModal(true);
-                        }}
-                        className={`w-full py-2.5 rounded-xl font-medium text-xs mt-6 transition-all cursor-pointer shadow-xs ${
-                          tier.highlight 
-                            ? 'bg-[#8E2840] hover:bg-[#782236] text-white shadow-sm' 
-                            : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200/80 text-stone-700 dark:text-stone-200'
+                    return (
+                      <div
+                        key={tier.id}
+                        className={`bg-white dark:bg-stone-900/90 p-6 rounded-2xl border flex flex-col justify-between transition-all ${
+                          isHighlight 
+                            ? 'border-[#B89758] dark:border-[#B89758]/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] ring-1 ring-[#B89758]/30 scale-[1.02]' 
+                            : 'border-stone-200/80 dark:border-stone-800 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.03)]'
                         }`}
                       >
-                        {tier.cta}
-                      </button>
-                    </div>
-                  ))}
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-stone-500 dark:text-stone-400 text-[10px] uppercase tracking-wider">{tier.name}</span>
+                              {tier.badge && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-[#9E7A36] bg-[#FAF6EE] dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-[#E9DEC6] dark:border-amber-900/50">
+                                  {tier.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-2xl font-bold font-serif text-stone-900 dark:text-white mt-1.5">{formattedPrice}</div>
+                            <span className="text-[10px] text-stone-400">pagamento {tier.period || 'único'}</span>
+                          </div>
+
+                          {/* Exclusive perk highlight */}
+                          {tier.perk && (
+                            <div className="p-3 bg-[#FAF6EE] dark:bg-amber-950/30 rounded-xl border border-[#E9DEC6]/70 dark:border-amber-900/40 text-[11px] text-[#9E7A36] dark:text-amber-200 font-medium">
+                              ✦ {tier.perk}
+                            </div>
+                          )}
+
+                          <ul className="space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800 text-[11px] text-stone-600 dark:text-stone-400 font-light">
+                            {tier.features.map((f, fIdx) => (
+                              <li key={fIdx} className="flex items-center gap-2">
+                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>{f}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setSelectedPackage(tier.name);
+                            setAuthTab('register');
+                            setShowAuthModal(true);
+                          }}
+                          className={`w-full py-2.5 rounded-xl font-medium text-xs mt-6 transition-all cursor-pointer shadow-xs ${
+                            isHighlight 
+                              ? 'bg-[#8E2840] hover:bg-[#782236] text-white shadow-sm' 
+                              : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200/80 text-stone-700 dark:text-stone-200'
+                          }`}
+                        >
+                          {ctaText}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             </motion.div>
@@ -1294,14 +1545,17 @@ export default function App() {
           
           if (username === 'superadmin' || role === 'superadmin') {
             setPersona('super-admin');
+            showAuthToast('login', 'Acesso Super Administrador Concedido', 'Bem-vindo de volta ao painel de controle global do Kutxi.');
           } else {
             setPersona('client-dashboard');
             setClientTab('overview');
+            showAuthToast('login', 'Bem-vindo(a) aos Seus Casamentos!', `Sessão iniciada como "${username}". Boas celebrações!`);
           }
           addAuditLog(username, 'Login Efetuado', `Acesso ao sistema com sucesso.`, 'auth');
         }}
         onRegisterSuccess={(newClient, user1, user2) => {
           handleAddClient(newClient, [user1, user2]);
+          showAuthToast('login', 'Casamento Registrado com Sucesso!', `Bem-vindos, ${newClient.clientName}! O vosso painel exclusivo foi criado.`);
         }}
       />
 

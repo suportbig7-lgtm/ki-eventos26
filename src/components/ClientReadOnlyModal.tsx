@@ -80,7 +80,7 @@ export default function ClientReadOnlyModal({ client, isOpen, onClose, userAccou
         <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-rose-950 p-6 text-white flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 font-serif font-bold text-xl">
-              {config?.brideGroom?.brideName?.charAt(0) || client.clientName.charAt(0)}
+              {config?.brideGroom?.groomName?.charAt(0) || config?.brideGroom?.brideName?.charAt(0) || client.clientName.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -212,8 +212,8 @@ export default function ClientReadOnlyModal({ client, isOpen, onClose, userAccou
                 <div className="p-4 bg-white dark:bg-slate-800 border border-slate-150 dark:border-slate-700 rounded-2xl space-y-2">
                   <h4 className="font-bold text-slate-800 dark:text-white text-xs">Informações da Cerimônia</h4>
                   <div className="space-y-1 text-slate-600 dark:text-slate-300">
-                    <div><strong>Noiva:</strong> {config?.brideGroom?.brideName || 'Não definido'}</div>
                     <div><strong>Noivo:</strong> {config?.brideGroom?.groomName || 'Não definido'}</div>
+                    <div><strong>Noiva:</strong> {config?.brideGroom?.brideName || 'Não definido'}</div>
                     <div><strong>Data & Hora:</strong> {config?.date ? new Date(config.date).toLocaleString('pt-BR') : 'A definir'}</div>
                     <div><strong>E-mail:</strong> {client.clientEmail}</div>
                   </div>

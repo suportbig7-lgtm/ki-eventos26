@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { ClientWeddingSaaS, WeddingConfig, UserAccount } from '../types';
 import { INITIAL_WEDDING_CONFIG, createBlankWeddingConfig } from '../data/defaultConfig';
+import { dbService } from '../services/dbService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -43,8 +44,8 @@ export default function AuthModal({
   const [showDemoBox, setShowDemoBox] = useState(false);
 
   // Register State
-  const [regFirstName, setRegFirstName] = useState('');
-  const [regLastName, setRegLastName] = useState('');
+  const [regGroomName, setRegGroomName] = useState('');
+  const [regBrideName, setRegBrideName] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPackage, setRegPackage] = useState(selectedPackage || 'Plano Grátis');
@@ -68,7 +69,7 @@ export default function AuthModal({
   } | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  const handleLoginSubmit = (e: FormEvent) => {
+  const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoginError('');
     if (!loginUser || !loginPass) {
@@ -77,37 +78,78 @@ export default function AuthModal({
     }
     setIsLoginLoading(true);
 
-    setTimeout(() => {
-      // 1. Check superadmin (user: superadmin / pass: admin123)
-      if (
-        (loginUser.trim().toLowerCase() === 'superadmin' && loginPass.trim() === 'admin123') ||
-        (loginUser.trim().toLowerCase() === 'ki-eventos' && loginPass.trim() === 'kieventos123')
-      ) {
+    const cleanUser = loginUser.trim();
+    const cleanPass = loginPass.trim();
+
+    // 1. Check superadmin fast path
+    if (
+      (cleanUser.toLowerCase() === 'superadmin' && cleanPass === 'admin123') ||
+      (cleanUser.toLowerCase() === 'ki-eventos' && cleanPass === 'kieventos123')
+    ) {
+      setIsLoginLoading(false);
+      onLoginSuccess('superadmin', 'system', 'superadmin');
+      onClose();
+      return;
+    }
+
+    // 2. Authenticate against server database (Cross-Device support)
+    try {
+      const serverRes = await dbService.auth.login(cleanUser, cleanPass);
+      if (serverRes.success && serverRes.user) {
+        // Hydrate local cache with client, config, and guests from server
+        if (serverRes.client) {
+          try {
+            const rawClients = localStorage.getItem('kutxi_clients');
+            const list = rawClients ? JSON.parse(rawClients) : [];
+            if (!list.some((c: any) => c.id === serverRes.client?.id)) {
+              localStorage.setItem('kutxi_clients', JSON.stringify([serverRes.client, ...list]));
+            }
+          } catch (e) {}
+        }
+
+        if (serverRes.config) {
+          try {
+            localStorage.setItem(`kutxi_wedding_config_${serverRes.user.clientId}`, JSON.stringify(serverRes.config));
+          } catch (e) {}
+        }
+
+        if (serverRes.guests) {
+          try {
+            localStorage.setItem(`kutxi_guests_${serverRes.user.clientId}`, JSON.stringify(serverRes.guests));
+          } catch (e) {}
+        }
+
         setIsLoginLoading(false);
-        onLoginSuccess('superadmin', 'system', 'superadmin');
+        onLoginSuccess(serverRes.user.username, serverRes.user.clientId, serverRes.user.role || 'couple');
         onClose();
         return;
+      } else if (serverRes.error && !serverRes.error.includes('comunicação')) {
+        // Server returned an explicit auth rejection
+        // Still check local accounts as fallback before failing
       }
+    } catch (e) {
+      console.warn('[handleLoginSubmit] Server auth error:', e);
+    }
 
-      // 2. Check couple accounts
-      const foundAccount = userAccounts.find(
-        acc => acc.username.toLowerCase() === loginUser.trim().toLowerCase() && acc.pass === loginPass.trim()
-      );
-      if (foundAccount) {
-        setIsLoginLoading(false);
-        onLoginSuccess(foundAccount.username, foundAccount.clientId, foundAccount.role || 'couple');
-        onClose();
-      } else {
-        setIsLoginLoading(false);
-        setLoginError('Credenciais incorretas. Verifique o usuário e a palavra-passe.');
-      }
-    }, 600);
+    // 3. Fallback: Check local device userAccounts prop
+    const foundAccount = userAccounts.find(
+      acc => acc.username.trim().toLowerCase() === cleanUser.toLowerCase() && acc.pass.trim() === cleanPass
+    );
+    if (foundAccount) {
+      setIsLoginLoading(false);
+      onLoginSuccess(foundAccount.username, foundAccount.clientId, foundAccount.role || 'couple');
+      onClose();
+      return;
+    }
+
+    setIsLoginLoading(false);
+    setLoginError('Credenciais incorretas. Verifique o usuário e a palavra-passe.');
   };
 
   const handleRegisterNext = (e: FormEvent) => {
     e.preventDefault();
-    if (!regFirstName || !regLastName || !regPhone) {
-      setOtpError('Por favor, preencha todos os campos obrigatórios.');
+    if (!regGroomName || !regBrideName || !regPhone) {
+      setOtpError('Por favor, preencha os nomes do noivo e da noiva e o telefone de contato.');
       return;
     }
     setOtpError('');
@@ -127,30 +169,30 @@ export default function AuthModal({
 
     setTimeout(() => {
       setIsOtpLoading(false);
-      const cleanFirstName = regFirstName.trim().replace(/\s+/g, '').toLowerCase();
-      const cleanLastName = regLastName.trim().replace(/\s+/g, '').toLowerCase();
+      const cleanGroomName = regGroomName.trim().replace(/\s+/g, '').toLowerCase();
+      const cleanBrideName = regBrideName.trim().replace(/\s+/g, '').toLowerCase();
       const rand1 = Math.floor(100 + Math.random() * 900);
       const rand2 = Math.floor(100 + Math.random() * 900);
 
       const user1 = {
-        username: `noiva.${cleanFirstName}`,
+        username: `noivo.${cleanGroomName}`,
         pass: `vows.${rand1}`,
-        role: 'Noiva / Planejadora'
+        role: 'Noivo / Planejador'
       };
       const user2 = {
-        username: `noivo.${cleanLastName}`,
+        username: `noiva.${cleanBrideName}`,
         pass: `vows.${rand2}`,
-        role: 'Noivo / Planejador'
+        role: 'Noiva / Planejadora'
       };
 
       const newClientId = 'client_' + Date.now();
-      const coupleFullName = `${regFirstName.trim()} & ${regLastName.trim()}`;
+      const coupleFullName = `${regGroomName.trim()} & ${regBrideName.trim()}`;
 
       // Create completely blank wedding configuration with NO demo data
       const customConfig: WeddingConfig = createBlankWeddingConfig(
         newClientId, 
-        regFirstName.trim(), 
-        regLastName.trim()
+        regGroomName.trim(), 
+        regBrideName.trim()
       );
       customConfig.isNewProfile = true;
       customConfig.onboardingCompleted = false;
@@ -168,7 +210,7 @@ export default function AuthModal({
       const newClient: ClientWeddingSaaS = {
         id: newClientId,
         clientName: coupleFullName,
-        clientEmail: regEmail.trim() || `${cleanFirstName}@kutxi.ao`,
+        clientEmail: regEmail.trim() || `${cleanGroomName}@kutxi.ao`,
         weddingDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         plan: isLuxo ? 'Luxury' : isPremium ? 'Premium' : 'Basic',
         status: isFree ? 'Trial' : 'Active',
@@ -184,6 +226,11 @@ export default function AuthModal({
           maxGuests: isFree ? 25 : isLuxo ? 9999 : isPremium ? 9999 : 150
         }
       };
+
+      // Instantly register on server so any device can log in immediately
+      dbService.auth.register(newClient, user1, user2).catch(err => {
+        console.warn('Background server registration notice:', err);
+      });
 
       setGeneratedCreds({
         user1,
@@ -502,24 +549,24 @@ export default function AuthModal({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Nome da Noiva</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Sofia"
-                  value={regFirstName}
-                  onChange={e => setRegFirstName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-rose-800 font-medium"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Nome do Noivo</label>
+                <label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Nome do Noivo *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Gabriel"
-                  value={regLastName}
-                  onChange={e => setRegLastName(e.target.value)}
+                  value={regGroomName}
+                  onChange={e => setRegGroomName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-rose-800 font-medium"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Nome da Noiva *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Sofia"
+                  value={regBrideName}
+                  onChange={e => setRegBrideName(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-rose-800 font-medium"
                 />
               </div>

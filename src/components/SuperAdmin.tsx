@@ -10,7 +10,7 @@ import {
   Ban, Shield, Power, ToggleLeft, ToggleRight, X
 } from 'lucide-react';
 import { ClientWeddingSaaS, ClientFeatures, SystemAuditLog, WeddingConfig, Guest, MessagingWebhookConfig, MessagingLog } from '../types';
-import { INITIAL_WEDDING_CONFIG } from '../data/defaultConfig';
+import { INITIAL_WEDDING_CONFIG, SaaSPlanConfig, DEFAULT_PLANS } from '../data/defaultConfig';
 import ClientReadOnlyModal from './ClientReadOnlyModal';
 import SupabaseModal from './SupabaseModal';
 import { safeSetItem, resetAllDataToVirgin } from '../utils/storage';
@@ -24,70 +24,6 @@ import {
   testTwilioSend,
   checkTwilioServerStatus
 } from '../services/messagingService';
-
-export interface SaaSPlanConfig {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  guestLimit: number | 'Ilimitado';
-  storageGB: number;
-  badge?: string;
-  popular?: boolean;
-  exclusivePerks: string[];
-  features: string[];
-  support: string;
-}
-
-const DEFAULT_PLANS: SaaSPlanConfig[] = [
-  {
-    id: 'free',
-    name: 'Plano Grátis',
-    price: 0,
-    period: 'vitalício',
-    guestLimit: 25,
-    storageGB: 0.5,
-    exclusivePerks: ['Ideal para testar ou mini-wedding no civil', 'Passe com QR Code básico'],
-    features: ['Até 25 convidados na lista', 'Formulário de RSVP simples', 'Envio manual de links padrão', 'Tema clássico pré-configurado'],
-    support: 'Comunidade Online'
-  },
-  {
-    id: 'basic',
-    name: 'Plano Ouro / Essencial',
-    price: 35000,
-    period: 'único',
-    guestLimit: 150,
-    storageGB: 2,
-    exclusivePerks: ['Passe VIP Mobile em PDF', 'Lista Multicaixa Express & IBAN', 'Mural de Recados'],
-    features: ['Até 150 convidados na lista', '2 GB de mídias e fotos', 'Lista de presentes MCX e IBAN', 'Passe VIP Mobile em PDF no smartphone', 'Mural de recados dos noivos', 'Suporte comercial'],
-    support: 'E-mail Comercial (48h)'
-  },
-  {
-    id: 'premium',
-    name: 'Plano Diamante / Luxo',
-    price: 65000,
-    period: 'único',
-    guestLimit: 'Ilimitado',
-    storageGB: 10,
-    popular: true,
-    badge: 'Mais Recomendado',
-    exclusivePerks: ['Convidados Ilimitados', 'Automação WhatsApp Integrada', 'Álbum Coletivo Colaborativo', 'Check-in de Portaria com QR Code'],
-    features: ['Convidados ilimitados na lista', '10 GB de fotos em alta resolução', 'Álbum coletivo colaborativo dos convidados', 'Check-in e portaria digital com leitor de QR Code', 'Disparo de WhatsApp com link de confirmação', 'Mural de votos permanente', 'Suporte prioritário WhatsApp'],
-    support: 'Suporte Prioritário WhatsApp (24h)'
-  },
-  {
-    id: 'luxury',
-    name: 'Plano Luanda VIP',
-    price: 110000,
-    period: 'único',
-    guestLimit: 'Ilimitado',
-    storageGB: 25,
-    badge: 'Experiência Suprema',
-    exclusivePerks: ['Multi-Eventos (Alambamento, Civil, Igreja, Festa)', 'Scanner de Portaria com Múltiplos Recepcionistas', 'Domínio Próprio / Slug Exclusivo', 'Assessoria VIP Dedicada'],
-    features: ['Multi-eventos sincronizados', '25 GB de armazenamento em nuvem', 'Múltiplos recepcionistas na portaria em tempo real', 'Domínio personalizado ou slug nobre', 'Lista de presentes com proof upload', 'Hot-line VIP WhatsApp 24/7'],
-    support: 'Assessoria VIP WhatsApp 24/7'
-  }
-];
 
 interface SuperAdminProps {
   clients: ClientWeddingSaaS[];
@@ -149,6 +85,9 @@ export default function SuperAdmin({
 
   useEffect(() => {
     safeSetItem('kutxi_saas_plans', JSON.stringify(plans));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kutxi_saas_plans_updated', { detail: plans }));
+    }
   }, [plans]);
 
   // Form fields for Client CRUD
@@ -217,9 +156,9 @@ export default function SuperAdmin({
 
     const rand1 = Math.floor(100 + Math.random() * 900);
     const rand2 = Math.floor(100 + Math.random() * 900);
-    setUser1Username('noiva.novo');
+    setUser1Username('noivo.novo');
     setUser1Pass(`vows.${rand1}`);
-    setUser2Username('noivo.novo');
+    setUser2Username('noiva.novo');
     setUser2Pass(`vows.${rand2}`);
 
     setIsModalOpen(true);
@@ -253,9 +192,9 @@ export default function SuperAdmin({
     } else {
       const rand1 = Math.floor(100 + Math.random() * 900);
       const rand2 = Math.floor(100 + Math.random() * 900);
-      setUser1Username(`noiva.${bride.toLowerCase().replace(/\s+/g, '')}`);
+      setUser1Username(`noivo.${groom.toLowerCase().replace(/\s+/g, '')}`);
       setUser1Pass(`vows.${rand1}`);
-      setUser2Username(`noivo.${groom.toLowerCase().replace(/\s+/g, '')}`);
+      setUser2Username(`noiva.${bride.toLowerCase().replace(/\s+/g, '')}`);
       setUser2Pass(`vows.${rand2}`);
     }
     setIsModalOpen(true);
@@ -334,7 +273,7 @@ export default function SuperAdmin({
     e.preventDefault();
     if (!brideName || !groomName || !clientEmail || !weddingDate) return;
 
-    const fullName = `${brideName.trim()} & ${groomName.trim()}`;
+    const fullName = `${groomName.trim()} & ${brideName.trim()}`;
     const accountsToAdd = [
       { username: user1Username.trim(), pass: user1Pass.trim() },
       { username: user2Username.trim(), pass: user2Pass.trim() }
@@ -1318,24 +1257,24 @@ export default function SuperAdmin({
               <form onSubmit={handleSaveClient} className="p-6 space-y-4 text-xs font-semibold">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Nome da Noiva</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Sofia"
-                      value={brideName}
-                      onChange={e => setBrideName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Nome do Noivo</label>
+                    <label className="text-slate-500 uppercase font-bold text-[10px]">Nome do Noivo *</label>
                     <input
                       type="text"
                       required
                       placeholder="Ex: Gabriel"
                       value={groomName}
                       onChange={e => setGroomName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-slate-500 uppercase font-bold text-[10px]">Nome da Noiva *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Sofia"
+                      value={brideName}
+                      onChange={e => setBrideName(e.target.value)}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
                     />
                   </div>

@@ -213,6 +213,82 @@ export default function GuestManager({
     }
   };
 
+  const handleExportCsv = () => {
+    if (guests.length === 0) {
+      showToast('A lista de convidados está vazia. Não há dados para exportar.', 'info');
+      return;
+    }
+
+    const headers = [
+      'Nome do Convidado',
+      'Status RSVP',
+      'Grupo',
+      'Telefone',
+      'E-mail',
+      'Mesa / Assento',
+      'Máx. Acompanhantes',
+      'Acompanhantes Confirmados',
+      'Nome do Acompanhante',
+      'Preferências e Restrições Alimentares',
+      'Observações',
+      'Token RSVP',
+      'Check-in Portaria',
+      'Data/Hora Check-in'
+    ];
+
+    const escapeCsv = (val: string | number | undefined | null) => {
+      if (val === undefined || val === null) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const statusLabel = (status: string) => {
+      switch (status) {
+        case 'Confirmed': return 'Confirmado';
+        case 'Declined': return 'Recusado';
+        case 'Awaiting_Approval': return 'Aguardando Aprovação';
+        default: return 'Pendente';
+      }
+    };
+
+    const rows = guests.map(g => [
+      escapeCsv(g.name),
+      escapeCsv(statusLabel(g.status)),
+      escapeCsv(getPortugueseGroupLabel(g.group)),
+      escapeCsv(g.phone || ''),
+      escapeCsv(g.email || ''),
+      escapeCsv(g.tableNumber || ''),
+      escapeCsv(g.maxPlusOnes ?? 0),
+      escapeCsv(g.plusOnesConfirmed ?? 0),
+      escapeCsv(g.companionName || ''),
+      escapeCsv(g.dietaryRequirements || 'Nenhuma restrição informada'),
+      escapeCsv(g.notes || ''),
+      escapeCsv(g.rsvpToken || ''),
+      escapeCsv(g.checkedIn ? 'Sim' : 'Não'),
+      escapeCsv(g.checkedInAt ? new Date(g.checkedInAt).toLocaleString('pt-AO') : '')
+    ]);
+
+    // Use UTF-8 BOM (\uFEFF) and semicolon separator for seamless Excel compatibility in Portuguese
+    const csvContent = '\uFEFF' + [
+      headers.map(h => `"${h}"`).join(';'),
+      ...rows.map(r => r.join(';'))
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const groomBride = `${config.brideGroom?.groomName || 'Noivo'}_e_${config.brideGroom?.brideName || 'Noiva'}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const today = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.setAttribute('download', `convidados_${groomBride}_${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Lista de ${guests.length} convidados exportada com sucesso (CSV)!`, 'success');
+  };
+
   return (
     <div className="space-y-6 relative" id="guest-management-section">
       {/* Toast Notification Banner */}
@@ -360,6 +436,14 @@ export default function GuestManager({
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleExportCsv}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-2xs"
+              title="Exportar lista de convidados com presença e preferências alimentares para arquivo CSV (Excel)"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+              <span>Exportar CSV</span>
+            </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-800 hover:bg-rose-900 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"

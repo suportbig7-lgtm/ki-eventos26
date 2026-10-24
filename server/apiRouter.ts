@@ -205,3 +205,137 @@ apiRouter.post('/twilio/send-whatsapp', async (req, res) => {
     });
   }
 });
+
+// ==========================================
+// PERSISTENT MULTI-DEVICE AUTH & SYNC ROUTES
+// ==========================================
+
+import { authenticateUser, registerCouple, syncWithServer, getServerDb, saveServerDb } from './dbStore';
+
+// POST /api/auth/login: Cross-device login check
+apiRouter.post('/auth/login', (req, res) => {
+  try {
+    const { username, pass } = req.body || {};
+    const result = authenticateUser(username, pass);
+    if (result.success) {
+      return res.json(result);
+    } else {
+      return res.status(401).json(result);
+    }
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: `Erro no servidor: ${err.message}` });
+  }
+});
+
+// POST /api/auth/register: Cross-device registration
+apiRouter.post('/auth/register', (req, res) => {
+  try {
+    const { client, user1, user2 } = req.body || {};
+    if (!client || !user1 || !user2) {
+      return res.status(400).json({ success: false, error: 'Dados de cadastro incompletos.' });
+    }
+    const saved = registerCouple(client, user1, user2);
+    return res.json({ success: saved, client, user1, user2 });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: `Erro ao salvar cadastro: ${err.message}` });
+  }
+});
+
+// GET /api/auth/accounts: List accounts (for synchronization)
+apiRouter.get('/auth/accounts', (_req, res) => {
+  try {
+    const db = getServerDb();
+    // Return accounts (omit passwords if not admin, or return full for sync)
+    return res.json({ success: true, accounts: db.userAccounts });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/sync: Retrieve full server state for initial hydration
+apiRouter.get('/sync', (_req, res) => {
+  try {
+    const db = getServerDb();
+    return res.json({ success: true, data: db });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/sync: Bidirectional sync between browser state and server database
+apiRouter.post('/sync', (req, res) => {
+  try {
+    const updatedDb = syncWithServer(req.body || {});
+    return res.json({ success: true, data: updatedDb });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: `Erro na sincronização: ${err.message}` });
+  }
+});
+
+// GET /api/wedding-config/:clientId
+apiRouter.get('/wedding-config/:clientId', (req, res) => {
+  try {
+    const cid = req.params.clientId;
+    const db = getServerDb();
+    const config = db.weddingConfigs[cid] || db.clients.find(c => c.id === cid)?.config || null;
+    return res.json({ success: true, config });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/wedding-config/:clientId
+apiRouter.post('/wedding-config/:clientId', (req, res) => {
+  try {
+    const cid = req.params.clientId;
+    const config = req.body;
+    const db = getServerDb();
+    db.weddingConfigs[cid] = config;
+    const client = db.clients.find(c => c.id === cid);
+    if (client) {
+      client.config = config;
+      if (config.brideGroom?.groomName && config.brideGroom?.brideName) {
+        client.clientName = `${config.brideGroom.groomName} & ${config.brideGroom.brideName}`;
+      }
+    }
+    saveServerDb(db);
+    return res.json({ success: true, config });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/guests/:clientId
+apiRouter.get('/guests/:clientId', (req, res) => {
+  try {
+    const cid = req.params.clientId;
+    const db = getServerDb();
+    const guests = db.guests[cid] || [];
+    return res.json({ success: true, guests });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/guests/:clientId
+apiRouter.post('/guests/:clientId', (req, res) => {
+  try {
+    const cid = req.params.clientId;
+    const { guests } = req.body || {};
+    if (Array.isArray(guests)) {
+      const db = getServerDb();
+      db.guests[cid] = guests;
+      const client = db.clients.find(c => c.id === cid);
+      if (client) {
+        client.guestCount = guests.length;
+        client.rsvpsReceived = guests.filter(g => g.status === 'Confirmed').length;
+      }
+      saveServerDb(db);
+      return res.json({ success: true, count: guests.length });
+    }
+    return res.status(400).json({ success: false, error: 'O corpo deve conter array "guests".' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+

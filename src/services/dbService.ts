@@ -1,4 +1,4 @@
-import { Guest, WeddingConfig, ClientWeddingSaaS, SystemAuditLog } from '../types';
+import { Guest, WeddingConfig, ClientWeddingSaaS, SystemAuditLog, UserAccount } from '../types';
 import { INITIAL_WEDDING_CONFIG, INITIAL_GUESTS, INITIAL_CLIENTS, INITIAL_AUDIT_LOGS, createBlankWeddingConfig } from '../data/defaultConfig';
 import { safeSetItem, safeGetItem, sanitizeClientsList, sanitizeConfigForStorage } from '../utils/storage';
 import { 
@@ -290,6 +290,74 @@ export const dbService = {
           message: `Falha na sincronização: ${err?.message || 'Erro desconhecido'}`
         };
       }
+    }
+  },
+
+  auth: {
+    async login(username: string, pass: string): Promise<{
+      success: boolean;
+      user?: UserAccount;
+      client?: ClientWeddingSaaS;
+      config?: WeddingConfig;
+      guests?: Guest[];
+      error?: string;
+    }> {
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, pass })
+        });
+        const data = await res.json();
+        return data;
+      } catch (e: any) {
+        return {
+          success: false,
+          error: 'Falha de comunicação com o servidor de autenticação.'
+        };
+      }
+    },
+
+    async register(client: ClientWeddingSaaS, user1: any, user2: any): Promise<boolean> {
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client, user1, user2 })
+        });
+        const data = await res.json();
+        return Boolean(data.success);
+      } catch (e) {
+        return false;
+      }
+    }
+  },
+
+  serverSync: {
+    async pull(): Promise<any> {
+      try {
+        const res = await fetch('/api/sync');
+        if (res.ok) {
+          const json = await res.json();
+          return json.data;
+        }
+      } catch (e) {}
+      return null;
+    },
+
+    async push(payload: any): Promise<any> {
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          return json.data;
+        }
+      } catch (e) {}
+      return null;
     }
   }
 };

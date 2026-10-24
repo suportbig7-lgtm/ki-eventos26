@@ -358,7 +358,7 @@ export const INITIAL_AUDIT_LOGS: SystemAuditLog[] = [
  * Creates a completely blank, virgin wedding configuration for new client profiles.
  * Ensures NO demo data (Gabriel & Sofia, fake guests, demo story or photos) leaks into the new profile.
  */
-export function createBlankWeddingConfig(clientId: string, brideName = '', groomName = ''): WeddingConfig {
+export function createBlankWeddingConfig(clientId: string, groomName = '', brideName = ''): WeddingConfig {
   const cleanId = clientId.replace(/[^a-zA-Z0-9_-]/g, '');
   return {
     id: 'w_' + cleanId,
@@ -367,16 +367,16 @@ export function createBlankWeddingConfig(clientId: string, brideName = '', groom
     isNewProfile: true,
     onboardingCompleted: false,
     brideGroom: {
-      brideName: brideName.trim(),
-      brideFullName: brideName.trim(),
-      brideBio: '',
-      brideParents: '',
       groomName: groomName.trim(),
       groomFullName: groomName.trim(),
       groomBio: '',
       groomParents: '',
-      bridePhoto: '',
+      brideName: brideName.trim(),
+      brideFullName: brideName.trim(),
+      brideBio: '',
+      brideParents: '',
       groomPhoto: '',
+      bridePhoto: '',
       couplePhoto: '',
     },
     date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -430,7 +430,7 @@ export function createBlankWeddingConfig(clientId: string, brideName = '', groom
       recommendedHotels: [],
     },
     theme: THEME_PRESETS[0],
-    customFooter: brideName && groomName ? `Com amor, sempre. — ${groomName} & ${brideName}` : 'Com amor, sempre.',
+    customFooter: groomName && brideName ? `Com amor, sempre. — ${groomName} & ${brideName}` : 'Com amor, sempre.',
     contactInfo: {
       phone: '',
       email: '',
@@ -444,3 +444,100 @@ export function createBlankWeddingConfig(clientId: string, brideName = '', groom
     muralComments: [],
   };
 }
+
+export interface SaaSPlanConfig {
+  id: string;
+  name: string;
+  price: number;
+  period: string;
+  guestLimit: number | 'Ilimitado';
+  storageGB: number;
+  badge?: string;
+  popular?: boolean;
+  desc?: string;
+  perk?: string;
+  exclusivePerks: string[];
+  features: string[];
+  support: string;
+}
+
+export const DEFAULT_PLANS: SaaSPlanConfig[] = [
+  {
+    id: 'free',
+    name: 'Plano Grátis (Degustação)',
+    price: 0,
+    period: 'degustação',
+    guestLimit: 20,
+    storageGB: 0.5,
+    desc: 'Ideal para experimentar a plataforma e criar o seu convite.',
+    perk: 'Até 20 Convites Digitais',
+    exclusivePerks: ['Ideal para testar ou mini-wedding no civil', 'Passe com QR Code básico'],
+    features: [
+      'Até 20 convites digitais incluídos',
+      'Página do convite interativo ativa',
+      'Confirmação de presença (RSVP simples)',
+      'Acesso restrito a funções avançadas (sem scanner de portaria QR, sem trilha ilimitada)'
+    ],
+    support: 'Comunidade Online'
+  },
+  {
+    id: 'basic',
+    name: 'Plano Essencial',
+    price: 45000,
+    period: 'único',
+    guestLimit: 100,
+    storageGB: 1,
+    desc: 'Para celebrações intimistas e familiares.',
+    perk: 'Download do Convite em PDF',
+    exclusivePerks: ['Passe VIP Mobile em PDF', 'Lista Multicaixa Express & IBAN', 'Mural de Recados'],
+    features: [
+      'Até 100 convidados na lista',
+      '1 GB de armazenamento',
+      'Download do convite em PDF formato A5',
+      'Suporte por e-mail'
+    ],
+    support: 'E-mail Comercial (48h)'
+  },
+  {
+    id: 'premium',
+    name: 'Plano Premium',
+    price: 135000,
+    period: 'único',
+    guestLimit: 300,
+    storageGB: 5,
+    popular: true,
+    badge: 'Mais Recomendado',
+    desc: 'O mais querido para casamentos tradicionais.',
+    perk: 'Mural de Fotos & Trilha Spotify',
+    exclusivePerks: ['Até 300 Convidados', 'Mural de Fotos & Mensagens', 'Trilha Sonora Spotify'],
+    features: [
+      'Até 300 convidados na lista',
+      '5 GB de fotos em alta resolução',
+      'Trilha sonora Spotify incorporada',
+      'Moderação de mensagens do mural',
+      'Suporte prioritário WhatsApp'
+    ],
+    support: 'Suporte Prioritário WhatsApp (24h)'
+  },
+  {
+    id: 'luxury',
+    name: 'Plano Luxo VIP',
+    price: 225000,
+    period: 'único',
+    guestLimit: 'Ilimitado',
+    storageGB: 25,
+    badge: 'Mais Escolhido',
+    popular: true,
+    desc: 'A experiência completa e sem limites.',
+    perk: 'Convidados Ilimitados & Scanner QR',
+    exclusivePerks: ['Convidados Ilimitados', 'Scanner de Portaria com QR Code', 'Multi-Eventos Sincronizados', 'Assessoria VIP 24/7'],
+    features: [
+      'Convidados ilimitados na lista',
+      'Portaria inteligente com scanner QR',
+      'Disparo automático via Webhook / WhatsApp',
+      'Múltiplos recepcionistas na portaria em tempo real',
+      'Assessoria VIP WhatsApp 24/7'
+    ],
+    support: 'Assessoria VIP WhatsApp 24/7'
+  }
+];

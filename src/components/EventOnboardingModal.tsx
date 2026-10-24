@@ -59,8 +59,8 @@ export default function EventOnboardingModal({
     e.preventDefault();
     setErrorMsg('');
 
-    if (!brideName.trim() || !groomName.trim()) {
-      setErrorMsg('Por favor, informe os nomes da noiva e do noivo.');
+    if (!groomName.trim() || !brideName.trim()) {
+      setErrorMsg('Por favor, informe os nomes do noivo e da noiva.');
       setActiveTab('couple');
       return;
     }
@@ -254,20 +254,6 @@ export default function EventOnboardingModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Nome da Noiva <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Sofia Kiala"
-                    value={brideName}
-                    onChange={e => setBrideName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-800"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     Nome do Noivo <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -276,6 +262,20 @@ export default function EventOnboardingModal({
                     placeholder="Ex: Gabriel Pureza"
                     value={groomName}
                     onChange={e => setGroomName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Nome da Noiva <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Sofia Kiala"
+                    value={brideName}
+                    onChange={e => setBrideName(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-800"
                   />
                 </div>
