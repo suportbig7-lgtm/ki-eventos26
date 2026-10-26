@@ -7,7 +7,7 @@ import {
   Edit, Trash2, Key, Copy, Check, Eye, Calendar, Mail, Smartphone, 
   RefreshCw, LayoutDashboard, Sliders, Lock, ExternalLink, QrCode, FileText,
   Database, Cloud, MessageCircle, AlertCircle, ShieldAlert, CheckCircle,
-  Ban, Shield, Power, ToggleLeft, ToggleRight, X, Clock
+  Ban, Shield, Power, ToggleLeft, ToggleRight, X, Clock, Upload
 } from 'lucide-react';
 import { ClientWeddingSaaS, ClientFeatures, SystemAuditLog, WeddingConfig, Guest, MessagingWebhookConfig, MessagingLog, ActivationRequest } from '../types';
 import { INITIAL_WEDDING_CONFIG, SaaSPlanConfig, DEFAULT_PLANS } from '../data/defaultConfig';
@@ -102,6 +102,12 @@ export default function SuperAdmin({
 
   // Virgin reset confirmation modal
   const [showVirginResetModal, setShowVirginResetModal] = useState(false);
+
+  // Cross-browser Sync and Backup states
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncJsonInput, setSyncJsonInput] = useState('');
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [isSyncingServer, setIsSyncingServer] = useState(false);
 
   useEffect(() => {
     safeSetItem('kutxi_saas_plans', JSON.stringify(plans));
@@ -363,6 +369,106 @@ export default function SuperAdmin({
     window.location.reload();
   };
 
+  const handleExportAllClientsJson = () => {
+    try {
+      const configs: Record<string, any> = {};
+      clients.forEach(c => {
+        const id = c.id;
+        try {
+          const raw = localStorage.getItem(`kutxi_wedding_config_${id}`);
+          if (raw) configs[id] = JSON.parse(raw);
+          else if (c.config) configs[id] = c.config;
+        } catch (e) {}
+      });
+
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        clients,
+        userAccounts,
+        weddingConfigs: configs
+      };
+
+      const jsonStr = JSON.stringify(payload, null, 2);
+      navigator.clipboard.writeText(jsonStr);
+      setSyncNotice(`Sucesso! ${clients.length} casais e credenciais copiados para a área de transferência. Cole no outro navegador para unificar.`);
+      setTimeout(() => setSyncNotice(null), 5000);
+    } catch (e: any) {
+      setSyncNotice('Erro ao exportar: ' + e.message);
+    }
+  };
+
+  const handleImportMergeClientsJson = () => {
+    try {
+      if (!syncJsonInput.trim()) return;
+      const parsed = JSON.parse(syncJsonInput.trim());
+
+      let addedClients = 0;
+      if (Array.isArray(parsed.clients)) {
+        parsed.clients.forEach((c: ClientWeddingSaaS) => {
+          const exists = clients.some(existing => existing.id === c.id);
+          if (!exists) {
+            onAddClient(c);
+            addedClients++;
+          }
+          if (c.config) {
+            safeSetItem(`kutxi_wedding_config_${c.id}`, JSON.stringify(c.config));
+          }
+        });
+      }
+
+      if (parsed.weddingConfigs && typeof parsed.weddingConfigs === 'object') {
+        Object.entries(parsed.weddingConfigs).forEach(([cid, cfg]) => {
+          safeSetItem(`kutxi_wedding_config_${cid}`, JSON.stringify(cfg));
+        });
+      }
+
+      if (Array.isArray(parsed.userAccounts)) {
+        const existingAccs = JSON.parse(localStorage.getItem('kutxi_user_accounts') || '[]');
+        const map = new Map();
+        existingAccs.forEach((a: any) => map.set(a.username.toLowerCase(), a));
+        parsed.userAccounts.forEach((a: any) => map.set(a.username.toLowerCase(), a));
+        safeSetItem('kutxi_user_accounts', JSON.stringify(Array.from(map.values())));
+      }
+
+      setSyncNotice(`Mesclagem concluída! ${addedClients} novos casais importados. Atualizando visualização...`);
+      setSyncJsonInput('');
+      setTimeout(() => {
+        setSyncNotice(null);
+        setShowSyncModal(false);
+        window.location.reload();
+      }, 1500);
+    } catch (e: any) {
+      setSyncNotice('Formato JSON inválido. Verifique o código colado.');
+    }
+  };
+
+  const handleForceServerPushPull = async () => {
+    setIsSyncingServer(true);
+    setSyncNotice('Sincronizando casais com o servidor e outros dispositivos...');
+    try {
+      const res = await dbService.serverSync.push({
+        clients,
+        userAccounts
+      });
+      if (res) {
+        setSyncNotice(`Sincronização concluída! A base agora conta com ${res.clients?.length || clients.length} casais.`);
+        setTimeout(() => {
+          setSyncNotice(null);
+          window.location.reload();
+        }, 1500);
+      } else {
+        setSyncNotice('Sincronização local preservada com sucesso.');
+        setTimeout(() => setSyncNotice(null), 3000);
+      }
+    } catch (err: any) {
+      setSyncNotice('Erro ao contatar servidor: ' + err.message);
+      setTimeout(() => setSyncNotice(null), 4000);
+    } finally {
+      setIsSyncingServer(false);
+    }
+  };
+
   const pendingActivationsCount = activationRequests.filter(r => r.status === 'pending').length;
 
   const handleApproveActivation = async (req: ActivationRequest) => {
@@ -585,6 +691,70 @@ export default function SuperAdmin({
             animate={{ opacity: 1 }}
             className="space-y-4"
           >
+            {/* SYNC NOTICE BANNER */}
+            {syncNotice && (
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 rounded-2xl text-xs font-semibold flex items-center justify-between shadow-sm">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  {syncNotice}
+                </span>
+                <button onClick={() => setSyncNotice(null)} className="text-emerald-700 hover:text-emerald-900">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* CROSS-BROWSER SYNC & BACKUP BANNER */}
+            <div className="p-4 bg-gradient-to-r from-stone-900 to-rose-950 text-white rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 shadow-md border border-stone-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <RefreshCw className={`w-5 h-5 text-amber-300 ${isSyncingServer ? 'animate-spin' : ''}`} />
+                </div>
+                <div>
+                  <h4 className="font-serif font-bold text-sm text-white flex items-center gap-2">
+                    <span>Sincronização & Backup de Casais (Entre Navegadores)</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-sans font-semibold">
+                      {clients.length} cadastrados neste navegador
+                    </span>
+                  </h4>
+                  <p className="text-xs text-stone-300 font-light">
+                    Mova seus casais entre Chrome, Safari e celulares sem perder nenhum dado.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleExportAllClientsJson}
+                  className="px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+                  title="Copiar todos os casais cadastrados para transferir para outro navegador"
+                >
+                  <Copy className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Copiar Backup (JSON)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSyncModal(true)}
+                  className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 shadow-sm"
+                  title="Importar ou mesclar casais de outro navegador"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Importar de Outro Navegador</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleForceServerPushPull}
+                  disabled={isSyncingServer}
+                  className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 shadow-sm"
+                  title="Forçar envio de todos os casais para a base do servidor"
+                >
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>{isSyncingServer ? 'Sincronizando...' : 'Sincronizar Nuvem'}</span>
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2 w-full sm:w-80">
                 <Search className="w-4 h-4 text-slate-400" />
@@ -2029,6 +2199,78 @@ export default function SuperAdmin({
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: IMPORTAR / MESCLAR CASAIS ENTRE NAVEGADORES */}
+      <AnimatePresence>
+        {showSyncModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto font-sans">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full overflow-hidden my-8 text-slate-800 dark:text-slate-100"
+            >
+              <div className="bg-slate-950 p-5 text-white flex justify-between items-center border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-amber-300" />
+                  <h3 className="font-bold text-sm">Importar / Mesclar Casais</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSyncModal(false)}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-xs cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 text-xs">
+                <p className="text-slate-500 leading-relaxed font-light">
+                  Cole o código JSON copiado do outro navegador no campo abaixo. Os casais serão unidos sem sobrescrever ou apagar nenhum casal existente.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="font-bold uppercase text-[10px] text-slate-400 tracking-wider">
+                    Código de Backup / Migração (JSON)
+                  </label>
+                  <textarea
+                    rows={8}
+                    value={syncJsonInput}
+                    onChange={e => setSyncJsonInput(e.target.value)}
+                    placeholder='Cole aqui o JSON copiado através de "Copiar Backup (JSON)"...'
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[11px] resize-none focus:outline-rose-800"
+                  />
+                </div>
+
+                {syncNotice && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 rounded-xl text-xs font-semibold">
+                    {syncNotice}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSyncModal(false)}
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleImportMergeClientsJson}
+                    disabled={!syncJsonInput.trim()}
+                    className="flex-1 py-2.5 bg-rose-900 hover:bg-rose-950 disabled:opacity-50 text-white rounded-xl font-bold shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4 text-amber-300" />
+                    <span>Mesclar & Salvar Casais</span>
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

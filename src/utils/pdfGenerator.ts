@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { WeddingConfig, Guest } from '../types';
+import { buildPortableInviteLink } from './portableLink';
 
 /**
  * Mobile-Sized Luxury Wedding Pass PDF (Smartphone / Apple Wallet Pass format)
@@ -505,7 +506,7 @@ export async function generateWeddingInvitationPdf(config: WeddingConfig, guest?
     doc.text('Por gentileza, confirme a sua presença até 10 dias antes da cerimónia.', width / 2, curY + 13, { align: 'center' });
 
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const baseLink = `${origin}/?clientId=${config.clientId || 'client_1'}`;
+    const baseLink = buildPortableInviteLink(config, origin);
     doc.setTextColor(180, 142, 70);
     doc.setFont('times', 'bold');
     doc.setFontSize(8);
@@ -546,9 +547,10 @@ export function formatWhatsAppMessage(config: WeddingConfig, guest?: Guest): str
   } catch (e) {}
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const basePortable = buildPortableInviteLink(config, origin);
   const inviteUrl = guest 
-    ? `${origin}/?invite=${guest.rsvpToken}&clientId=${config.clientId || 'client_1'}`
-    : `${origin}/?clientId=${config.clientId || 'client_1'}`;
+    ? `${basePortable}&token=${encodeURIComponent(guest.rsvpToken)}`
+    : basePortable;
 
   const greeting = guest ? `Olá, *${guest.name}*!` : `Olá!`;
   const churchPart = config.venue?.churchName ? `\n⛪ *Igreja (Religioso):* ${config.venue.churchName} (${config.venue.churchTime || '16:00h'})\n📍 ${config.venue.churchAddress || 'Luanda'}` : '';
@@ -629,7 +631,7 @@ export async function downloadPhysicalCardQrPdf(config: WeddingConfig, customUrl
   curY += 4;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const inviteUrl = customUrl || `${origin}/?invite=convite&clientId=${config.clientId || 'client_1'}`;
+  const inviteUrl = customUrl || buildPortableInviteLink(config, origin);
 
   // Generate QR Code data URL
   try {

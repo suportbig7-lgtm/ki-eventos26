@@ -14,6 +14,7 @@ import { downloadWeddingPdf, downloadMobileWeddingPassPdf, sendInviteViaWhatsApp
 import { safeSetItem, safeGetItem } from '../utils/storage';
 import { getSafeImageUrl, handleImageError, WEDDING_FALLBACK_IMAGES } from '../utils/imageFallback';
 import { generateQrDataUrl, generateHighResQrPng, downloadQrCodeImage } from '../utils/qrCodeHelper';
+import { buildPortableInviteLink } from '../utils/portableLink';
 
 interface PublicInviteProps {
   config: WeddingConfig;
@@ -152,9 +153,8 @@ export default function PublicInvite({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const targetCid = config.clientId || config.id || 'client_1';
-  const inviteProfileUrl = `${origin}/?clientId=${targetCid}&invite=convite`;
-  const shortInviteUrl = `${origin}/?w=${targetCid}`;
+  const inviteProfileUrl = buildPortableInviteLink(config, origin);
+  const shortInviteUrl = inviteProfileUrl;
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setRsvpToast({ show: true, message, type });

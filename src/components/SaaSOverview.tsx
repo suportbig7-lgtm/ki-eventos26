@@ -13,6 +13,7 @@ import { Guest, WeddingConfig, TodoItem, ClientWeddingSaaS } from '../types';
 import { getSafeImageUrl, handleImageError } from '../utils/imageFallback';
 import { downloadQrCodeImage } from '../utils/qrCodeHelper';
 import { downloadPhysicalCardQrPdf } from '../utils/pdfGenerator';
+import { buildPortableInviteLink } from '../utils/portableLink';
 import EventOnboardingModal from './EventOnboardingModal';
 import UpgradePlanModal from './UpgradePlanModal';
 import ActivationRequestModal from './ActivationRequestModal';
@@ -287,14 +288,13 @@ export default function SaaSOverview({
               <button
                 type="button"
                 onClick={() => {
-                  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                  const targetCid = config.clientId || config.id || 'client_1';
-                  const link = `${origin}/?clientId=${targetCid}&invite=convite`;
+                  const link = buildPortableInviteLink(config);
                   navigator.clipboard.writeText(link);
                   setCopiedInviteLink(true);
                   setTimeout(() => setCopiedInviteLink(false), 3000);
                 }}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700 hover:border-[#8E2840]/40 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                title="Copiar link com dados do casamento embutidos"
               >
                 <Share2 className="w-3.5 h-3.5 text-[#8E2840]" />
                 <span>{copiedInviteLink ? 'Link Copiado!' : 'Copiar Link Convite'}</span>
@@ -303,16 +303,14 @@ export default function SaaSOverview({
               <button
                 type="button"
                 onClick={() => {
-                  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                  const targetCid = config.clientId || config.id || 'client_1';
-                  const link = `${origin}/?clientId=${targetCid}&invite=convite`;
+                  const link = buildPortableInviteLink(config);
                   const groom = config.brideGroom?.groomName?.trim() || 'Noivo';
                   const bride = config.brideGroom?.brideName?.trim() || 'Noiva';
                   const msg = `💍 *Convite Oficial de Casamento* 💍\n\nOlá! Com imensa alegria convidamos você para celebrar o nosso casamento:\n✨ *${groom} & ${bride}*\n\nAcesse o link abaixo para visualizar todos os detalhes e confirmar a sua presença:\n🔗 ${link}`;
                   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
                 }}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                title="Partilhar convite no WhatsApp"
+                title="Partilhar convite no WhatsApp com dados embutidos"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>WhatsApp</span>
@@ -321,12 +319,11 @@ export default function SaaSOverview({
               <button
                 type="button"
                 onClick={() => {
-                  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                  const targetCid = config.clientId || config.id || 'client_1';
-                  const link = `${origin}/?clientId=${targetCid}&invite=convite`;
+                  const link = buildPortableInviteLink(config);
                   downloadPhysicalCardQrPdf(config, link);
                 }}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700 hover:border-[#9E7A36]/40 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                title="Baixar Cartão A6 com QR Code autossuficiente"
               >
                 <Printer className="w-3.5 h-3.5 text-[#9E7A36]" />
                 <span>Cartão A6 QR</span>

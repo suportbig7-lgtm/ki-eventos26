@@ -36,6 +36,7 @@ import { safeSetItem, safeGetItem, sanitizeClientsList, freeUpLocalStorageSpace 
 import { isSupabaseConfigured } from './services/supabase';
 import { dbService } from './services/dbService';
 import { dispatchRsvpWhatsApp } from './services/messagingService';
+import { decodeWeddingPayload, encodeWeddingPayload, buildPortableInviteLink } from './utils/portableLink';
 
 // Run cleanup immediately on script execution
 freeUpLocalStorageSpace();
@@ -151,6 +152,13 @@ export default function App() {
   // Active Tenant ID
   const [activeClientId, setActiveClientId] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
+    const payload = params.get('d') || params.get('data');
+    if (payload) {
+      const decoded = decodeWeddingPayload(payload);
+      if (decoded?.id || decoded?.clientId) {
+        return decoded.clientId || decoded.id;
+      }
+    }
     const urlClientId = params.get('clientId');
     if (urlClientId) return urlClientId;
     const portaria = params.get('portaria');
@@ -242,6 +250,19 @@ export default function App() {
   const [weddingConfig, setWeddingConfig] = useState<WeddingConfig>(() => {
     try {
       const p = new URLSearchParams(window.location.search);
+      // Priority 1: Self-contained portable URL payload
+      const payload = p.get('d') || p.get('data');
+      if (payload) {
+        const decoded = decodeWeddingPayload(payload);
+        if (decoded) {
+          const cid = decoded.clientId || decoded.id || 'client_1';
+          safeSetItem(`kutxi_wedding_config_${cid}`, JSON.stringify(decoded));
+          safeSetItem('kutxi_active_client_id', cid);
+          return decoded;
+        }
+      }
+
+      // Priority 2: Direct client ID lookup
       const cid = p.get('clientId') || p.get('w') || p.get('casamento') || p.get('c') || p.get('portaria') || 
                    localStorage.getItem('kutxi_active_client_id') || 'client_1';
       const directSaved = localStorage.getItem(`kutxi_wedding_config_${cid}`);
@@ -284,7 +305,41 @@ export default function App() {
   const [clients, setClients] = useState<ClientWeddingSaaS[]>(() => {
     try {
       const saved = localStorage.getItem('kutxi_clients');
-      return saved ? sanitizeClientsList(JSON.parse(saved)) : INITIAL_CLIENTS;
+      let baseList = saved ? sanitizeClientsList(JSON.parse(saved)) : INITIAL_CLIENTS;
+
+      // If URL contains embedded payload, ensure the decoded wedding is seamlessly registered in clients
+      if (typeof window !== 'undefined') {
+        const p = new URLSearchParams(window.location.search);
+        const payload = p.get('d') || p.get('data');
+        if (payload) {
+          const decoded = decodeWeddingPayload(payload);
+          if (decoded) {
+            const cid = decoded.clientId || decoded.id || 'client_1';
+            const exists = baseList.some(c => c.id === cid || c.config?.id === cid);
+            if (!exists) {
+              const groom = decoded.brideGroom?.groomName || 'Noivo';
+              const bride = decoded.brideGroom?.brideName || 'Noiva';
+              const newClient: ClientWeddingSaaS = {
+                id: cid,
+                clientName: `${groom} & ${bride}`,
+                clientEmail: decoded.contactInfo?.email || 'contato@kutxi.ao',
+                weddingDate: decoded.date ? decoded.date.split('T')[0] : '2026-10-30',
+                plan: 'Luxury',
+                status: 'Active',
+                guestCount: 0,
+                rsvpsReceived: 0,
+                revenue: 225000,
+                createdAt: new Date().toISOString(),
+                config: decoded
+              };
+              baseList = [newClient, ...baseList];
+              safeSetItem('kutxi_clients', JSON.stringify(baseList));
+            }
+          }
+        }
+      }
+
+      return baseList;
     } catch (e) {
       return INITIAL_CLIENTS;
     }
@@ -573,20 +628,32 @@ export default function App() {
     safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(clients)));
   }, [clients]);
 
-  // Synchronize browser URL bar dynamically so copying URL or sharing always includes client ID
+  // Synchronize browser URL bar dynamically so copying URL or sharing always includes client ID and payload
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const url = new URL(window.location.href);
       if (persona === 'public-invite' && activeClientId) {
+        let changed = false;
         if (url.searchParams.get('clientId') !== activeClientId && url.searchParams.get('w') !== activeClientId) {
           url.searchParams.set('clientId', activeClientId);
           url.searchParams.set('invite', 'convite');
+          changed = true;
+        }
+        // If 'd' param is missing and we have customized couple data, embed it
+        if (!url.searchParams.get('d') && weddingConfig.brideGroom?.groomName && weddingConfig.brideGroom.groomName !== 'Noivo') {
+          const encoded = encodeWeddingPayload(weddingConfig);
+          if (encoded) {
+            url.searchParams.set('d', encoded);
+            changed = true;
+          }
+        }
+        if (changed) {
           window.history.replaceState({}, '', url.toString());
         }
       }
     } catch (e) {}
-  }, [persona, activeClientId]);
+  }, [persona, activeClientId, weddingConfig]);
 
   useEffect(() => {
     safeSetItem('kutxi_audit_logs', JSON.stringify(auditLogs.slice(0, 30)));
@@ -600,6 +667,27 @@ export default function App() {
     const planos = params.get('planos');
     const shortW = params.get('w') || params.get('casamento') || params.get('c');
     let urlClientId = params.get('clientId') || shortW;
+
+    // Check self-contained portable URL payload
+    const payload = params.get('d') || params.get('data');
+    if (payload) {
+      const decoded = decodeWeddingPayload(payload);
+      if (decoded) {
+        const decodedCid = decoded.clientId || decoded.id || 'client_1';
+        urlClientId = decodedCid;
+        setWeddingConfig(decoded);
+        safeSetItem(`kutxi_wedding_config_${decodedCid}`, JSON.stringify(decoded));
+        safeSetItem('kutxi_active_client_id', decodedCid);
+        setActiveClientId(decodedCid);
+
+        // Also push this decoded config to server database so the server becomes aware of it
+        fetch(`/api/wedding-config/${decodedCid}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(decoded)
+        }).catch(() => {});
+      }
+    }
 
     if (portaria && portaria !== 'true') {
       urlClientId = portaria;
