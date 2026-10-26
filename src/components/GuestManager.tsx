@@ -3,13 +3,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, Search, Filter, Plus, Trash2, CheckCircle, 
   XCircle, Clock, Download, Upload, QrCode, Mail, 
-  Tag, AlertCircle, MessageCircle, FileText, Send, Sparkles, Check, X
+  Tag, AlertCircle, MessageCircle, FileText, Send, Sparkles, Check, X, Lock
 } from 'lucide-react';
-import { Guest, GuestGroup, WeddingConfig } from '../types';
+import { Guest, GuestGroup, WeddingConfig, ClientWeddingSaaS } from '../types';
 import { downloadWeddingPdf, sendInviteViaWhatsApp } from '../utils/pdfGenerator';
 import { INITIAL_WEDDING_CONFIG } from '../data/defaultConfig';
 import { generateQrDataUrl } from '../utils/qrCodeHelper';
 import { dispatchRsvpWhatsApp, formatGuestMessage } from '../services/messagingService';
+import { usePlanPermissions } from '../hooks/usePlanPermissions';
 
 interface GuestManagerProps {
   guests: Guest[];
@@ -19,6 +20,8 @@ interface GuestManagerProps {
   onBulkStatusUpdate: (ids: string[], status: 'Confirmed' | 'Pending' | 'Declined') => void;
   clientId?: string;
   config?: WeddingConfig;
+  client?: ClientWeddingSaaS;
+  onOpenActivationModal?: () => void;
 }
 
 export default function GuestManager({ 
@@ -28,8 +31,11 @@ export default function GuestManager({
   onDeleteGuest,
   onBulkStatusUpdate,
   clientId = 'client_1',
-  config = INITIAL_WEDDING_CONFIG
+  config = INITIAL_WEDDING_CONFIG,
+  client,
+  onOpenActivationModal
 }: GuestManagerProps) {
+  const permissions = usePlanPermissions(client, guests.length);
   const [searchTerm, setSearchTerm] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -139,6 +145,16 @@ export default function GuestManager({
   const handleSubmitNewGuest = (e: FormEvent) => {
     e.preventDefault();
     if (!newGuest.name?.trim()) return;
+
+    // Package Guest Limit Enforcement via usePlanPermissions
+    const checkLimit = permissions.assertCanAddGuests(1);
+    if (!checkLimit.allowed) {
+      alert(checkLimit.message);
+      if (onOpenActivationModal) {
+        onOpenActivationModal();
+      }
+      return;
+    }
 
     const cleanName = (newGuest.name || '')
       .toLowerCase()
@@ -422,6 +438,35 @@ export default function GuestManager({
         </div>
       )}
 
+      {/* GUEST LIMIT WARNING BANNER */}
+      {permissions.isGuestLimitExceeded && (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <strong className="text-amber-950 dark:text-amber-200 block font-bold">
+                Limite de Convidados do Pacote Atingido ({guests.length}/{permissions.maxGuests})
+              </strong>
+              <span className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                O seu {permissions.isTrial ? 'Plano Grátis' : `Plano ${permissions.currentPlan}`} atingiu o teto máximo de {permissions.maxGuests} convidados. Solicite a ativação de um pacote superior para convidados ilimitados.
+              </span>
+            </div>
+          </div>
+          {onOpenActivationModal && (
+            <button
+              type="button"
+              onClick={onOpenActivationModal}
+              className="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl font-bold cursor-pointer transition-all shadow-xs shrink-0 flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+              <span>Solicitar Ativação</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Search and Action Toolbar */}
       <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -436,6 +481,20 @@ export default function GuestManager({
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {permissions.maxGuests < 9999 && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px]">
+                <span className="text-slate-400 font-medium">Capacidade:</span>
+                <span className={`font-bold ${permissions.isGuestLimitExceeded ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'}`}>
+                  {guests.length} / {permissions.maxGuests} ({permissions.guestUsagePercentage}%)
+                </span>
+                <div className="w-14 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all ${permissions.isGuestLimitExceeded ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                    style={{ width: `${permissions.guestUsagePercentage}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <button
               onClick={handleExportCsv}
               className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-2xs"
@@ -445,11 +504,22 @@ export default function GuestManager({
               <span>Exportar CSV</span>
             </button>
             <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-800 hover:bg-rose-900 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              onClick={() => {
+                if (permissions.isGuestLimitExceeded) {
+                  alert(`Limite de convidados atingido (${guests.length}/${permissions.maxGuests}). Solicite a ativação de um plano superior para convidar mais pessoas.`);
+                  if (onOpenActivationModal) onOpenActivationModal();
+                  return;
+                }
+                setShowAddModal(true);
+              }}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer ${
+                permissions.isGuestLimitExceeded
+                  ? 'bg-amber-700 hover:bg-amber-800 text-white'
+                  : 'bg-rose-800 hover:bg-rose-900 text-white'
+              }`}
             >
-              <Plus className="w-3.5 h-3.5" />
-              Adicionar Convidado
+              {permissions.isGuestLimitExceeded ? <Lock className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              <span>{permissions.isGuestLimitExceeded ? 'Limite Atingido' : 'Adicionar Convidado'}</span>
             </button>
           </div>
         </div>

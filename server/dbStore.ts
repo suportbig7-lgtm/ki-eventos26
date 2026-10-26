@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { UserAccount, ClientWeddingSaaS, WeddingConfig, Guest, SystemAuditLog } from '../src/types';
+import { UserAccount, ClientWeddingSaaS, WeddingConfig, Guest, SystemAuditLog, ActivationRequest } from '../src/types';
 import { INITIAL_WEDDING_CONFIG, INITIAL_GUESTS, INITIAL_CLIENTS, INITIAL_AUDIT_LOGS, DEFAULT_PLANS, createBlankWeddingConfig, SaaSPlanConfig } from '../src/data/defaultConfig';
 
 export interface ServerDatabase {
@@ -9,6 +9,7 @@ export interface ServerDatabase {
   weddingConfigs: Record<string, WeddingConfig>;
   guests: Record<string, Guest[]>;
   saasPlans: SaaSPlanConfig[];
+  activationRequests: ActivationRequest[];
   auditLogs: SystemAuditLog[];
   lastUpdated: string;
 }
@@ -117,6 +118,7 @@ function buildInitialDatabase(): ServerDatabase {
     weddingConfigs: configs,
     guests: guestsMap,
     saasPlans: DEFAULT_PLANS,
+    activationRequests: [],
     auditLogs: INITIAL_AUDIT_LOGS,
     lastUpdated: new Date().toISOString()
   };
@@ -134,6 +136,9 @@ export function getServerDb(): ServerDatabase {
       const raw = fs.readFileSync(dbFilePath, 'utf-8');
       const parsed: ServerDatabase = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.userAccounts) && Array.isArray(parsed.clients)) {
+        if (!Array.isArray(parsed.activationRequests)) {
+          parsed.activationRequests = [];
+        }
         // Ensure standard superadmin & client_novo exist
         const hasSuper = parsed.userAccounts.some(a => a.username.toLowerCase() === 'superadmin');
         if (!hasSuper) {
@@ -414,6 +419,118 @@ export function syncWithServer(payload: {
     db.saasPlans = payload.saasPlans;
   }
 
+  // 6. Merge Activation Requests
+  if ((payload as any).activationRequests && Array.isArray((payload as any).activationRequests)) {
+    if (!Array.isArray(db.activationRequests)) db.activationRequests = [];
+    for (const req of (payload as any).activationRequests) {
+      if (!req?.id) continue;
+      const idx = db.activationRequests.findIndex(r => r.id === req.id);
+      if (idx >= 0) {
+        db.activationRequests[idx] = { ...db.activationRequests[idx], ...req };
+      } else {
+        db.activationRequests.push(req);
+      }
+    }
+  }
+
   saveServerDb(db);
   return db;
+}
+
+/**
+ * Activation Request operations
+ */
+export function createActivationRequest(request: ActivationRequest): boolean {
+  const db = getServerDb();
+  if (!Array.isArray(db.activationRequests)) {
+    db.activationRequests = [];
+  }
+  const idx = db.activationRequests.findIndex(r => r.id === request.id);
+  if (idx >= 0) {
+    db.activationRequests[idx] = request;
+  } else {
+    db.activationRequests.unshift(request);
+  }
+
+  // Add system audit log
+  db.auditLogs.unshift({
+    id: 'log_' + Date.now(),
+    timestamp: new Date().toISOString(),
+    actor: request.clientName,
+    action: 'Solicitação de Ativação',
+    details: `Casal solicitou ativação do plano ${request.requestedPlan} via ${request.paymentMethod.toUpperCase()} (Ref: ${request.paymentReference || 'N/A'}).`,
+    ip: '127.0.0.1',
+    type: 'system'
+  });
+
+  return saveServerDb(db);
+}
+
+export function getActivationRequests(): ActivationRequest[] {
+  const db = getServerDb();
+  return Array.isArray(db.activationRequests) ? db.activationRequests : [];
+}
+
+export function approveActivationRequest(requestId: string): { success: boolean; client?: ClientWeddingSaaS; error?: string } {
+  const db = getServerDb();
+  if (!Array.isArray(db.activationRequests)) return { success: false, error: 'Lista vazia' };
+  
+  const req = db.activationRequests.find(r => r.id === requestId);
+  if (!req) return { success: false, error: 'Solicitação não encontrada' };
+
+  req.status = 'approved';
+  req.resolvedAt = new Date().toISOString();
+
+  // Find and update client
+  const client = db.clients.find(c => c.id === req.clientId);
+  if (client) {
+    client.status = 'Active';
+    client.accessRevoked = false;
+    client.plan = req.requestedPlan;
+    client.revenue = req.amount || (req.requestedPlan === 'Luxury' ? 110000 : req.requestedPlan === 'Premium' ? 65000 : 35000);
+    client.features = {
+      allowWhatsAppAutomation: req.requestedPlan === 'Luxury' || req.requestedPlan === 'Premium',
+      allowCollectiveAlbum: true,
+      allowGatekeeperPortal: req.requestedPlan === 'Luxury' || req.requestedPlan === 'Premium',
+      maxGuests: req.requestedPlan === 'Luxury' ? 9999 : req.requestedPlan === 'Premium' ? 9999 : 150
+    };
+
+    db.auditLogs.unshift({
+      id: 'log_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      actor: 'Super Administrador',
+      action: 'Pacote Aprovado & Ativado',
+      details: `Solicitação aprovada para "${client.clientName}". Pacote ${req.requestedPlan} ativado com sucesso.`,
+      ip: '127.0.0.1',
+      type: 'security'
+    });
+  }
+
+  saveServerDb(db);
+  return { success: true, client };
+}
+
+export function rejectActivationRequest(requestId: string, reason?: string): { success: boolean; error?: string } {
+  const db = getServerDb();
+  if (!Array.isArray(db.activationRequests)) return { success: false, error: 'Lista vazia' };
+
+  const req = db.activationRequests.find(r => r.id === requestId);
+  if (!req) return { success: false, error: 'Solicitação não encontrada' };
+
+  req.status = 'rejected';
+  req.notes = reason || req.notes || 'Comprovativo não identificado ou valor divergente';
+  req.resolvedAt = new Date().toISOString();
+
+  db.auditLogs.unshift({
+    id: 'log_' + Date.now(),
+    timestamp: new Date().toISOString(),
+    actor: 'Super Administrador',
+    action: 'Solicitação Rejeitada',
+    details: `Solicitação de "${req.clientName}" rejeitada: ${req.notes}`,
+    ip: '127.0.0.1',
+    type: 'security'
+  });
+
+  saveServerDb(db);
+  return { success: true };
 }

@@ -210,7 +210,17 @@ apiRouter.post('/twilio/send-whatsapp', async (req, res) => {
 // PERSISTENT MULTI-DEVICE AUTH & SYNC ROUTES
 // ==========================================
 
-import { authenticateUser, registerCouple, syncWithServer, getServerDb, saveServerDb } from './dbStore';
+import { 
+  authenticateUser, 
+  registerCouple, 
+  syncWithServer, 
+  getServerDb, 
+  saveServerDb,
+  createActivationRequest,
+  getActivationRequests,
+  approveActivationRequest,
+  rejectActivationRequest
+} from './dbStore';
 
 // POST /api/auth/login: Cross-device login check
 apiRouter.post('/auth/login', (req, res) => {
@@ -277,7 +287,18 @@ apiRouter.get('/wedding-config/:clientId', (req, res) => {
   try {
     const cid = req.params.clientId;
     const db = getServerDb();
-    const config = db.weddingConfigs[cid] || db.clients.find(c => c.id === cid)?.config || null;
+    let config = db.weddingConfigs[cid] || null;
+    if (!config) {
+      const match = db.clients.find(c => 
+        c.id === cid || 
+        c.config?.id === cid || 
+        c.config?.slug === cid || 
+        c.config?.clientId === cid
+      );
+      if (match?.config) {
+        config = match.config;
+      }
+    }
     return res.json({ success: true, config });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -291,7 +312,11 @@ apiRouter.post('/wedding-config/:clientId', (req, res) => {
     const config = req.body;
     const db = getServerDb();
     db.weddingConfigs[cid] = config;
-    const client = db.clients.find(c => c.id === cid);
+    const client = db.clients.find(c => 
+      c.id === cid || 
+      c.config?.id === cid || 
+      c.config?.slug === cid
+    );
     if (client) {
       client.config = config;
       if (config.brideGroom?.groomName && config.brideGroom?.brideName) {
@@ -310,8 +335,14 @@ apiRouter.get('/guests/:clientId', (req, res) => {
   try {
     const cid = req.params.clientId;
     const db = getServerDb();
-    const guests = db.guests[cid] || [];
-    return res.json({ success: true, guests });
+    let guests = db.guests[cid] || null;
+    if (!guests) {
+      const match = db.clients.find(c => c.id === cid || c.config?.id === cid || c.config?.slug === cid);
+      if (match && db.guests[match.id]) {
+        guests = db.guests[match.id];
+      }
+    }
+    return res.json({ success: true, guests: guests || [] });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -334,6 +365,70 @@ apiRouter.post('/guests/:clientId', (req, res) => {
       return res.json({ success: true, count: guests.length });
     }
     return res.status(400).json({ success: false, error: 'O corpo deve conter array "guests".' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/activation-requests: List all package activation requests
+apiRouter.get('/activation-requests', (_req, res) => {
+  try {
+    const requests = getActivationRequests();
+    return res.json({ success: true, requests });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/activation-requests: Couple submits package activation request
+apiRouter.post('/activation-requests', (req, res) => {
+  try {
+    const requestData = req.body;
+    if (!requestData?.clientId || !requestData?.requestedPlan) {
+      return res.status(400).json({ success: false, error: 'Dados da solicitação incompletos.' });
+    }
+    const saved = createActivationRequest(requestData);
+    return res.json({ success: saved, request: requestData });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/activation-requests/:id/approve: SuperAdmin approves activation request
+apiRouter.post('/activation-requests/:id/approve', (req, res) => {
+  try {
+    const result = approveActivationRequest(req.params.id);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/activation-requests/:id/reject: SuperAdmin rejects activation request
+apiRouter.post('/activation-requests/:id/reject', (req, res) => {
+  try {
+    const { reason } = req.body || {};
+    const result = rejectActivationRequest(req.params.id, reason);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/clients/:id/toggle-access: Toggle client suspended status
+apiRouter.post('/clients/:id/toggle-access', (req, res) => {
+  try {
+    const cid = req.params.id;
+    const db = getServerDb();
+    const client = db.clients.find(c => c.id === cid);
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Cliente não encontrado.' });
+    }
+    const newStatus = client.status === 'Active' ? 'Suspended' : 'Active';
+    client.status = newStatus;
+    client.accessRevoked = newStatus === 'Suspended';
+    saveServerDb(db);
+    return res.json({ success: true, client });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

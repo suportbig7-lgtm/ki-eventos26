@@ -7,14 +7,15 @@ import {
   Edit, Trash2, Key, Copy, Check, Eye, Calendar, Mail, Smartphone, 
   RefreshCw, LayoutDashboard, Sliders, Lock, ExternalLink, QrCode, FileText,
   Database, Cloud, MessageCircle, AlertCircle, ShieldAlert, CheckCircle,
-  Ban, Shield, Power, ToggleLeft, ToggleRight, X
+  Ban, Shield, Power, ToggleLeft, ToggleRight, X, Clock
 } from 'lucide-react';
-import { ClientWeddingSaaS, ClientFeatures, SystemAuditLog, WeddingConfig, Guest, MessagingWebhookConfig, MessagingLog } from '../types';
+import { ClientWeddingSaaS, ClientFeatures, SystemAuditLog, WeddingConfig, Guest, MessagingWebhookConfig, MessagingLog, ActivationRequest } from '../types';
 import { INITIAL_WEDDING_CONFIG, SaaSPlanConfig, DEFAULT_PLANS } from '../data/defaultConfig';
 import ClientReadOnlyModal from './ClientReadOnlyModal';
 import SupabaseModal from './SupabaseModal';
 import { safeSetItem, resetAllDataToVirgin } from '../utils/storage';
 import { isSupabaseConfigured } from '../services/supabase';
+import { dbService } from '../services/dbService';
 import { 
   getMessagingConfig, 
   saveMessagingConfig, 
@@ -42,9 +43,28 @@ export default function SuperAdmin({
   onUpdateClient, 
   onDeleteClient 
 }: SuperAdminProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'plans' | 'messaging' | 'settings' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'activations' | 'plans' | 'messaging' | 'settings' | 'logs'>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState('All');
+
+  // Activation Requests state
+  const [activationRequests, setActivationRequests] = useState<ActivationRequest[]>([]);
+  const [isActLoading, setIsActLoading] = useState(false);
+  const [actSuccessMsg, setActSuccessMsg] = useState<string | null>(null);
+
+  const fetchActivations = () => {
+    dbService.activation.getAll().then(list => {
+      if (Array.isArray(list)) {
+        setActivationRequests(list);
+      }
+    }).catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchActivations();
+    const interval = setInterval(fetchActivations, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Read-Only Client Modal
   const [readOnlyClient, setReadOnlyClient] = useState<ClientWeddingSaaS | null>(null);
@@ -343,14 +363,61 @@ export default function SuperAdmin({
     window.location.reload();
   };
 
+  const pendingActivationsCount = activationRequests.filter(r => r.status === 'pending').length;
+
+  const handleApproveActivation = async (req: ActivationRequest) => {
+    setIsActLoading(true);
+    try {
+      const res = await dbService.activation.approve(req.id);
+      if (res.success && res.client) {
+        onUpdateClient(res.client);
+        setActSuccessMsg(`Pacote ${req.requestedPlan} ativado com sucesso para "${req.clientName}"!`);
+        setTimeout(() => setActSuccessMsg(null), 3500);
+      }
+      fetchActivations();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setIsActLoading(false);
+    }
+  };
+
+  const handleRejectActivation = async (req: ActivationRequest) => {
+    const reason = window.prompt('Motivo da rejeição:', 'Comprovativo não identificado ou valor divergente');
+    if (reason === null) return;
+    setIsActLoading(true);
+    try {
+      await dbService.activation.reject(req.id, reason);
+      fetchActivations();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setIsActLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 text-slate-800 dark:text-slate-100" id="super-admin-root-view">
+      {/* Activation success alert */}
+      {actSuccessMsg && (
+        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-200 rounded-2xl text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <span>{actSuccessMsg}</span>
+        </div>
+      )}
+
       {/* Super Admin Top Control Bar */}
       <div className="bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1">
           {[
             { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
             { id: 'clients', label: `Casais & Licenças (${clients.length})`, icon: Users },
+            { 
+              id: 'activations', 
+              label: `Solicitações de Ativação ${pendingActivationsCount > 0 ? `(${pendingActivationsCount})` : ''}`, 
+              icon: Sparkles,
+              hasBadge: pendingActivationsCount > 0
+            },
             { id: 'plans', label: 'Planos & Tarifas', icon: CreditCard },
             { id: 'messaging', label: 'WhatsApp & Webhook', icon: MessageCircle },
             { id: 'settings', label: 'Definições do Sistema', icon: Settings },
@@ -359,14 +426,17 @@ export default function SuperAdmin({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
                 activeTab === tab.id 
                   ? 'bg-rose-900 text-white shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
+              <span>{tab.label}</span>
+              {(tab as any).hasBadge && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              )}
             </button>
           ))}
         </div>
@@ -673,6 +743,144 @@ export default function SuperAdmin({
                         </tr>
                       );
                     })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+
+        {/* TAB: SOLICITAÇÕES DE ATIVAÇÃO PENDENTES E APROVADAS */}
+        {activeTab === 'activations' && (
+          <motion.div
+            key="activations-tab"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="space-y-6"
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Solicitações de Ativação de Pacotes ({activationRequests.length})</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Gerencie os comprovativos Multicaixa Express (MCX) e transferências bancárias enviadas pelos casais.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchActivations}
+                disabled={isActLoading}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isActLoading ? 'animate-spin' : ''}`} />
+                <span>Atualizar Lista</span>
+              </button>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="p-3.5">Casal Solicitante</th>
+                    <th className="p-3.5">Pacote Escolhido</th>
+                    <th className="p-3.5">Valor (AOA)</th>
+                    <th className="p-3.5">Método & Referência</th>
+                    <th className="p-3.5">Data / Hora</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right">Ação SuperAdmin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                  {activationRequests.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-slate-400">
+                        Nenhuma solicitação de ativação pendente no momento. Quando um casal solicitar a ativação com comprovativo Multicaixa Express ou IBAN, ela aparecerá aqui.
+                      </td>
+                    </tr>
+                  ) : (
+                    activationRequests.map((req) => (
+                      <tr key={req.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="p-3.5">
+                          <div className="font-bold text-slate-900 dark:text-white">{req.clientName}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            {req.clientEmail} {req.clientPhone ? `· ${req.clientPhone}` : ''}
+                          </div>
+                        </td>
+                        <td className="p-3.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            req.requestedPlan === 'Luxury'
+                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300'
+                              : req.requestedPlan === 'Premium'
+                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200'
+                          }`}>
+                            {req.requestedPlan}
+                          </span>
+                        </td>
+                        <td className="p-3.5 font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                          {req.amount ? `${req.amount.toLocaleString('pt-AO')} Kz` : '35.000 Kz'}
+                        </td>
+                        <td className="p-3.5">
+                          <div className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px]">
+                            {req.paymentMethod === 'mcx' ? 'Multicaixa Express' : req.paymentMethod === 'iban' ? 'Transferência IBAN' : 'Depósito'}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-mono">Ref: {req.paymentReference}</div>
+                          {req.notes && <div className="text-[10px] text-stone-400 italic">"{req.notes}"</div>}
+                        </td>
+                        <td className="p-3.5 text-slate-500 text-[10px] font-mono">
+                          {new Date(req.createdAt).toLocaleString('pt-AO')}
+                        </td>
+                        <td className="p-3.5">
+                          {req.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                              <Clock className="w-3 h-3" />
+                              Pendente
+                            </span>
+                          )}
+                          {req.status === 'approved' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Ativado
+                            </span>
+                          )}
+                          {req.status === 'rejected' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700">
+                              <Ban className="w-3 h-3" />
+                              Rejeitado
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-right">
+                          {req.status === 'pending' ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleApproveActivation(req)}
+                                disabled={isActLoading}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>Aprovar & Ativar</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRejectActivation(req)}
+                                disabled={isActLoading}
+                                className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-[10px] font-bold transition-all cursor-pointer"
+                              >
+                                Rejeitar
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[10px]">Concluído</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

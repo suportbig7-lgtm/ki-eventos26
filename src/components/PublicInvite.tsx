@@ -152,7 +152,9 @@ export default function PublicInvite({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const inviteProfileUrl = `${origin}/?invite=convite&clientId=${config.clientId || 'client_1'}`;
+  const targetCid = config.clientId || config.id || 'client_1';
+  const inviteProfileUrl = `${origin}/?clientId=${targetCid}&invite=convite`;
+  const shortInviteUrl = `${origin}/?w=${targetCid}`;
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setRsvpToast({ show: true, message, type });
@@ -167,14 +169,16 @@ export default function PublicInvite({
   };
 
   const handleShareInviteWhatsApp = () => {
-    const groomName = config.brideGroom?.groomName || 'Gabriel';
-    const brideName = config.brideGroom?.brideName || 'Sofia';
-    let formattedDate = '25 de Outubro de 2026';
+    const groomName = config.brideGroom?.groomName?.trim() || (config.clientId !== 'client_1' ? 'Noivo' : 'Gabriel');
+    const brideName = config.brideGroom?.brideName?.trim() || (config.clientId !== 'client_1' ? 'Noiva' : 'Sofia');
+    let formattedDate = 'Data da Celebração';
     try {
-      formattedDate = new Date(config.date).toLocaleDateString('pt-AO', { day: 'numeric', month: 'long', year: 'numeric' });
+      if (config.date) {
+        formattedDate = new Date(config.date).toLocaleDateString('pt-AO', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
     } catch (e) {}
 
-    const text = `💍 *Convite Oficial de Casamento* 💍\n\nÉ com imensa honra e alegria que convidamos você para celebrar o nosso matrimônio!\n\n✨ *${groomName} & ${brideName}*\n📅 *Data:* ${formattedDate}\n\nAcesse o link abaixo para visualizar todos os detalhes, mapa da Igreja e Recepção, lista de presentes e confirmar a sua presença:\n🔗 ${inviteProfileUrl}\n\nSerá uma honra celebrar este dia com você! ❤️`;
+    const text = `💍 *Convite Oficial de Casamento* 💍\n\nÉ com imensa honra e alegria que convidamos você para celebrar o nosso matrimônio!\n\n✨ *${groomName} & ${brideName}*\n📅 *Data:* ${formattedDate}\n\nAcesse o link abaixo para visualizar todos os detalhes, mapa da Igreja e Recepção, lista de presentes e confirmar a sua presença:\n🔗 ${shortInviteUrl}\n\nSerá uma honra celebrar este dia com você! ❤️`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -601,8 +605,8 @@ export default function PublicInvite({
     showToast('Sua mensagem carinhosa foi enviada e aguarda validação no perfil dos noivos antes de aparecer no mural!', 'success');
   };
 
-  const groom = config.brideGroom?.groomName || 'Gabriel';
-  const bride = config.brideGroom?.brideName || 'Sofia';
+  const groom = config.brideGroom?.groomName?.trim() || (config.clientId !== 'client_1' ? 'Noivo' : 'Gabriel');
+  const bride = config.brideGroom?.brideName?.trim() || (config.clientId !== 'client_1' ? 'Noiva' : 'Sofia');
 
   const formatAOA = (val: number) => {
     return new Intl.NumberFormat('pt-AO', {

@@ -306,6 +306,23 @@ export interface MessagingLog {
   responsePayload?: string;
 }
 
+export interface ActivationRequest {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone?: string;
+  requestedPlan: 'Basic' | 'Premium' | 'Luxury';
+  amount: number;
+  paymentMethod: 'mcx' | 'iban' | 'cash';
+  paymentReference: string;
+  proofUrl?: string;
+  notes?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 export interface UserAccount {
   username: string;
   pass: string;

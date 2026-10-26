@@ -29,6 +29,9 @@ import PublicInvite from './components/PublicInvite';
 import GatekeeperPortal from './components/GatekeeperPortal';
 import AuthModal from './components/AuthModal';
 import SupabaseModal from './components/SupabaseModal';
+import FeatureGate from './components/FeatureGate';
+import ActivationRequestModal from './components/ActivationRequestModal';
+import { usePlanPermissions } from './hooks/usePlanPermissions';
 import { safeSetItem, safeGetItem, sanitizeClientsList, freeUpLocalStorageSpace } from './utils/storage';
 import { isSupabaseConfigured } from './services/supabase';
 import { dbService } from './services/dbService';
@@ -189,6 +192,7 @@ export default function App() {
   const [showSupabaseModal, setShowSupabaseModal] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [showActivationModal, setShowActivationModal] = useState(false);
 
   // Dynamic SaaS Plans synced with SuperAdmin pricing changes
   const [saasPlans, setSaasPlans] = useState<SaaSPlanConfig[]>(() => {
@@ -237,14 +241,15 @@ export default function App() {
   // Wedding Config (Starts virgin and clean for new clients, completely isolated)
   const [weddingConfig, setWeddingConfig] = useState<WeddingConfig>(() => {
     try {
-      const cid = (new URLSearchParams(window.location.search).get('clientId')) || 
+      const p = new URLSearchParams(window.location.search);
+      const cid = p.get('clientId') || p.get('w') || p.get('casamento') || p.get('c') || p.get('portaria') || 
                    localStorage.getItem('kutxi_active_client_id') || 'client_1';
       const directSaved = localStorage.getItem(`kutxi_wedding_config_${cid}`);
       if (directSaved) return JSON.parse(directSaved);
       const savedClients = localStorage.getItem('kutxi_clients');
       if (savedClients) {
         const list = JSON.parse(savedClients);
-        const match = list.find((c: any) => c.id === cid || c.config?.id === cid);
+        const match = list.find((c: any) => c.id === cid || c.config?.id === cid || c.config?.clientId === cid);
         if (match?.config) return match.config;
       }
       if (cid === 'client_1') {
@@ -260,7 +265,8 @@ export default function App() {
   // Guest list (Starts clean from virgin state per tenant)
   const [guests, setGuests] = useState<Guest[]>(() => {
     try {
-      const cid = (new URLSearchParams(window.location.search).get('clientId')) || 
+      const p = new URLSearchParams(window.location.search);
+      const cid = p.get('clientId') || p.get('w') || p.get('casamento') || p.get('c') || p.get('portaria') || 
                    localStorage.getItem('kutxi_active_client_id') || 'client_1';
       const saved = localStorage.getItem(`kutxi_guests_${cid}`);
       if (saved) return JSON.parse(saved);
@@ -293,6 +299,10 @@ export default function App() {
       return INITIAL_AUDIT_LOGS;
     }
   });
+
+  // Permissions hook for the active wedding tenant based on ClientWeddingSaaS
+  const activeClient = clients.find(c => c.id === activeClientId);
+  const permissions = usePlanPermissions(activeClient, guests.length);
 
   // Save changes to LocalStorage on updates
   useEffect(() => {
@@ -331,24 +341,56 @@ export default function App() {
         if (raw) localClients = JSON.parse(raw);
       } catch (e) {}
 
-      // 2. Synchronize bidirectionally with the server
+      let localWeddingConfig = weddingConfig;
+      if (activeClientId) {
+        try {
+          const raw = localStorage.getItem(`kutxi_wedding_config_${activeClientId}`);
+          if (raw) localWeddingConfig = JSON.parse(raw);
+        } catch (e) {}
+      }
+
+      // 2. Synchronize bidirectionally with the server (ADDITIVE UNION)
       const serverState = await dbService.serverSync.push({
         userAccounts: localAccounts,
         clients: localClients,
-        saasPlans: saasPlans
+        saasPlans: saasPlans,
+        weddingConfigs: activeClientId ? { [activeClientId]: localWeddingConfig } : undefined
       });
 
       if (serverState) {
-        // Sync accounts
+        // Sync accounts: UNION MERGE
         if (Array.isArray(serverState.userAccounts) && serverState.userAccounts.length > 0) {
-          setUserAccounts(serverState.userAccounts);
-          safeSetItem('kutxi_user_accounts', JSON.stringify(serverState.userAccounts));
+          setUserAccounts(prev => {
+            const accMap = new Map<string, UserAccount>();
+            prev.forEach(a => accMap.set(a.username.toLowerCase(), a));
+            serverState.userAccounts.forEach((a: UserAccount) => accMap.set(a.username.toLowerCase(), a));
+            const merged = Array.from(accMap.values());
+            safeSetItem('kutxi_user_accounts', JSON.stringify(merged));
+            return merged;
+          });
         }
 
-        // Sync clients
+        // Sync clients: UNION MERGE (Never drop clients created on other browsers)
         if (Array.isArray(serverState.clients) && serverState.clients.length > 0) {
-          setClients(serverState.clients);
-          safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(serverState.clients)));
+          setClients(prev => {
+            const clientMap = new Map<string, ClientWeddingSaaS>();
+            prev.forEach(c => clientMap.set(c.id, c));
+            serverState.clients.forEach((c: ClientWeddingSaaS) => {
+              const existing = clientMap.get(c.id);
+              if (existing) {
+                clientMap.set(c.id, { 
+                  ...existing, 
+                  ...c, 
+                  config: c.config || existing.config 
+                });
+              } else {
+                clientMap.set(c.id, c);
+              }
+            });
+            const merged = sanitizeClientsList(Array.from(clientMap.values()));
+            safeSetItem('kutxi_clients', JSON.stringify(merged));
+            return merged;
+          });
         }
 
         // Sync plans
@@ -360,8 +402,10 @@ export default function App() {
         // Sync current active wedding config from server if available
         if (activeClientId && serverState.weddingConfigs && serverState.weddingConfigs[activeClientId]) {
           const cloudConfig = serverState.weddingConfigs[activeClientId];
-          setWeddingConfig(cloudConfig);
-          safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(cloudConfig));
+          if (cloudConfig.brideGroom?.groomName || cloudConfig.brideGroom?.brideName) {
+            setWeddingConfig(cloudConfig);
+            safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(cloudConfig));
+          }
         }
 
         // Sync current active guests from server if available
@@ -529,6 +573,21 @@ export default function App() {
     safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(clients)));
   }, [clients]);
 
+  // Synchronize browser URL bar dynamically so copying URL or sharing always includes client ID
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      if (persona === 'public-invite' && activeClientId) {
+        if (url.searchParams.get('clientId') !== activeClientId && url.searchParams.get('w') !== activeClientId) {
+          url.searchParams.set('clientId', activeClientId);
+          url.searchParams.set('invite', 'convite');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+    } catch (e) {}
+  }, [persona, activeClientId]);
+
   useEffect(() => {
     safeSetItem('kutxi_audit_logs', JSON.stringify(auditLogs.slice(0, 30)));
   }, [auditLogs]);
@@ -539,7 +598,8 @@ export default function App() {
     const portaria = params.get('portaria');
     const invite = params.get('invite') || params.get('convite') || params.get('token');
     const planos = params.get('planos');
-    let urlClientId = params.get('clientId');
+    const shortW = params.get('w') || params.get('casamento') || params.get('c');
+    let urlClientId = params.get('clientId') || shortW;
 
     if (portaria && portaria !== 'true') {
       urlClientId = portaria;
@@ -548,18 +608,40 @@ export default function App() {
     if (urlClientId) {
       safeSetItem('kutxi_active_client_id', urlClientId);
       setActiveClientId(urlClientId);
+
+      // Fetch official wedding config for this tenant immediately from server!
+      fetch(`/api/wedding-config/${urlClientId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.config) {
+            setWeddingConfig(data.config);
+            safeSetItem(`kutxi_wedding_config_${urlClientId}`, JSON.stringify(data.config));
+          }
+        })
+        .catch(() => {});
+
+      // Fetch guests for this tenant from server
+      fetch(`/api/guests/${urlClientId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.guests)) {
+            setGuests(data.guests);
+            safeSetItem(`kutxi_guests_${urlClientId}`, JSON.stringify(data.guests));
+          }
+        })
+        .catch(() => {});
     }
 
     if (portaria) {
       setPersona('gatekeeper-portal');
       setIsPortariaLocked(true);
       addAuditLog('Portaria', 'Acesso via Link Direto', `Portaria acessada para o casamento ${urlClientId || 'padrão'}.`, 'auth');
-    } else if (invite) {
+    } else if (invite || shortW) {
       setPersona('public-invite');
       setIsInviteLocked(true);
-      const cleanToken = invite === 'convite' || invite === 'true' ? '' : invite;
+      const cleanToken = invite === 'convite' || invite === 'true' || !invite ? '' : invite;
       setUrlGuestToken(cleanToken);
-      addAuditLog('Convidado', 'Acesso ao Convite', `Convite acessado via token: ${cleanToken || 'geral'}`, 'rsvp');
+      addAuditLog('Convidado', 'Acesso ao Convite', `Convite acessado via token: ${cleanToken || urlClientId || 'geral'}`, 'rsvp');
     } else if (planos) {
       setPersona('saas-landing');
       setIsInviteLocked(false);
@@ -1361,16 +1443,84 @@ export default function App() {
           )}
 
           {/* CLIENT DASHBOARD */}
-          {persona === 'client-dashboard' && (
-            <motion.div
-              key="client-dashboard-screen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6"
-            >
-              {/* Client Dashboard Navigation Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-4">
+          {persona === 'client-dashboard' && (() => {
+            const currentClient = clients.find(c => c.id === activeClientId);
+            const isSuspended = !isSuperAdmin && currentClient && (currentClient.status === 'Suspended' || currentClient.accessRevoked);
+
+            if (isSuspended) {
+              return (
+                <motion.div
+                  key="client-suspended-screen"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="max-w-xl mx-auto my-12 p-8 bg-white dark:bg-stone-900 rounded-3xl border border-rose-200 dark:border-rose-900/50 shadow-2xl text-center space-y-5"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-800">
+                    <Lock className="w-8 h-8 stroke-[2.2]" />
+                  </div>
+                  <div className="space-y-2">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-rose-800 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-800 inline-block">
+                      Acesso Restrito / Suspenso
+                    </span>
+                    <h2 className="text-2xl font-serif font-bold text-stone-900 dark:text-white">
+                      Perfil de Casamento Temporariamente Suspenso
+                    </h2>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed max-w-md mx-auto">
+                      O painel do casamento de <strong>{currentClient?.clientName}</strong> está suspenso ou com acesso bloqueado aguardando ativação de pacote. Entre em contato com a equipe Ki-Eventos para reativação imediata.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-stone-50 dark:bg-stone-850 rounded-2xl border border-stone-200 dark:border-stone-800 text-left text-xs space-y-2">
+                    <div className="flex justify-between font-mono">
+                      <span className="text-stone-400">ID da Conta:</span>
+                      <span className="font-bold text-stone-700 dark:text-stone-300">{currentClient?.id}</span>
+                    </div>
+                    <div className="flex justify-between font-mono">
+                      <span className="text-stone-400">Status:</span>
+                      <span className="font-bold text-rose-600">Suspenso / Bloqueado</span>
+                    </div>
+                    <div className="flex justify-between font-mono">
+                      <span className="text-stone-400">Email:</span>
+                      <span className="font-bold text-stone-700 dark:text-stone-300">{currentClient?.clientEmail}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <a
+                      href={`https://api.whatsapp.com/send?phone=244923456789&text=${encodeURIComponent(`Olá Ki-Eventos! Sou do casamento "${currentClient?.clientName}" (ID: ${currentClient?.id}) e gostaria de reativar o meu acesso ao painel.`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Falar no WhatsApp (+244 923 456 789)</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAuthenticated(false);
+                        localStorage.removeItem('kutxi_is_authenticated');
+                        setPersona('saas-landing');
+                      }}
+                      className="px-4 py-3 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Sair da Conta
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            }
+
+            return (
+              <motion.div
+                key="client-dashboard-screen"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6"
+              >
+                {/* Client Dashboard Navigation Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200/80 dark:border-stone-800 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-[#8E2840]/10 dark:bg-rose-950/40 text-[#8E2840] dark:text-rose-400 flex items-center justify-center font-bold">
                     <Heart className="w-5 h-5 fill-current" />
@@ -1380,7 +1530,7 @@ export default function App() {
                       {weddingConfig.brideGroom?.groomName || 'Noivo'} & {weddingConfig.brideGroom?.brideName || 'Noiva'}
                     </h1>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      Painel de Controle dos Noivos · {activeClientId === 'client_1' ? 'Plano Luxo VIP' : 'Plano Ativo'}
+                      Painel de Controle dos Noivos · {permissions.isTrial ? 'Plano Grátis (Degustação)' : `Plano ${permissions.currentPlan} ${permissions.currentPlan === 'Luxury' ? 'VIP' : ''}`}
                     </p>
                   </div>
                 </div>
@@ -1389,11 +1539,11 @@ export default function App() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {[
                     { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
-                    { id: 'guests', label: 'Convidados & RSVP', icon: Users },
+                    { id: 'guests', label: 'Convidados & RSVP', icon: Users, badge: permissions.maxGuests < 9999 ? `${guests.length}/${permissions.maxGuests}` : undefined },
                     { id: 'editor', label: 'Personalizar Convite', icon: Sliders },
                     { id: 'gifts', label: 'Lista de Presentes', icon: Gift },
-                    { id: 'album', label: 'Álbum Partilhado', icon: BookOpen },
-                    { id: 'checkin', label: 'Portaria & QR', icon: QrCode },
+                    { id: 'album', label: 'Álbum Partilhado', icon: BookOpen, isLocked: !permissions.canUseCollectiveAlbum, requiredTag: 'Premium' },
+                    { id: 'checkin', label: 'Portaria & QR', icon: QrCode, isLocked: !permissions.canUseGatekeeperPortal, requiredTag: 'VIP' },
                   ].map(tab => {
                     const Icon = tab.icon;
                     const isActive = clientTab === tab.id;
@@ -1410,6 +1560,21 @@ export default function App() {
                       >
                         <Icon className="w-3.5 h-3.5" />
                         <span>{tab.label}</span>
+                        {tab.isLocked && (
+                          <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-0.5">
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>{tab.requiredTag}</span>
+                          </span>
+                        )}
+                        {tab.badge && !tab.isLocked && (
+                          <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold ${
+                            permissions.isGuestLimitExceeded
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                              : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'
+                          }`}>
+                            {tab.badge}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -1421,7 +1586,7 @@ export default function App() {
                 <SaaSOverview
                   guests={guests}
                   config={weddingConfig}
-                  planName={activeClientId === 'client_1' ? 'Plano Luxo VIP' : 'Plano Ativo'}
+                  planName={permissions.isTrial ? 'Plano Grátis' : `Plano ${permissions.currentPlan}`}
                   onUpdateConfig={handleUpdateWeddingConfig}
                   onNavigateTab={tab => setClientTab(tab as ClientTab)}
                   onOpenPublicInvite={() => setPersona('public-invite')}
@@ -1441,6 +1606,8 @@ export default function App() {
                     guests={guests}
                     clientId={activeClientId}
                     config={weddingConfig}
+                    client={currentClient}
+                    onOpenActivationModal={() => setShowActivationModal(true)}
                     onAddGuest={handleAddGuest}
                     onUpdateGuest={handleUpdateGuest}
                     onDeleteGuest={handleDeleteGuest}
@@ -1458,41 +1625,82 @@ export default function App() {
               )}
               {clientTab === 'album' && (
                 <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xs border border-stone-200/80 dark:border-stone-800">
-                  <SharedAlbumManager
-                    config={weddingConfig}
-                  />
+                  <FeatureGate
+                    client={currentClient}
+                    feature="collective_album"
+                    currentGuestCount={guests.length}
+                    onUpgradeRequested={() => setShowActivationModal(true)}
+                  >
+                    <SharedAlbumManager
+                      config={weddingConfig}
+                    />
+                  </FeatureGate>
                 </div>
               )}
               {clientTab === 'checkin' && (
                 <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xs border border-stone-200/80 dark:border-stone-800">
-                  <QRCheckIn
-                    guests={guests}
-                    onCheckIn={handleDoorCheckIn}
-                    clientId={activeClientId}
-                  />
+                  <FeatureGate
+                    client={currentClient}
+                    feature="gatekeeper_portal"
+                    currentGuestCount={guests.length}
+                    onUpgradeRequested={() => setShowActivationModal(true)}
+                  >
+                    <QRCheckIn
+                      guests={guests}
+                      onCheckIn={handleDoorCheckIn}
+                      clientId={activeClientId}
+                    />
+                  </FeatureGate>
                 </div>
               )}
             </motion.div>
-          )}
+          );
+        })()}
 
           {/* GATEKEEPER PORTAL */}
-          {persona === 'gatekeeper-portal' && (
-            <motion.div
-              key="gatekeeper-portal-screen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="min-h-screen bg-slate-900"
-            >
-              <GatekeeperPortal
-                guests={guests}
-                onCheckIn={handleDoorCheckIn}
-                clientName={`${weddingConfig.brideGroom?.groomName || 'Noivo'} & ${weddingConfig.brideGroom?.brideName || 'Noiva'}`}
-                onExitPortal={() => setPersona('saas-landing')}
-                isLocked={isPortariaLocked}
-              />
-            </motion.div>
-          )}
+          {persona === 'gatekeeper-portal' && (() => {
+            const currentClient = clients.find(c => c.id === activeClientId);
+            return (
+              <motion.div
+                key="gatekeeper-portal-screen"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="min-h-screen bg-slate-900"
+              >
+                <FeatureGate
+                  client={currentClient}
+                  feature="gatekeeper_portal"
+                  currentGuestCount={guests.length}
+                  fallback={
+                    <div className="max-w-xl mx-auto my-16 p-8 bg-slate-900 rounded-3xl border border-rose-900 text-center space-y-4 text-white">
+                      <div className="w-14 h-14 rounded-2xl bg-rose-950/80 border border-rose-800 text-rose-400 flex items-center justify-center mx-auto">
+                        <Lock className="w-7 h-7" />
+                      </div>
+                      <h2 className="text-xl font-bold font-serif text-white">Portaria Não Habilitada</h2>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        O serviço de portaria com leitor de QR Code requer a assinatura do <strong>Plano Luxo VIP</strong>. Entre em contato com a organização do casamento.
+                      </p>
+                      <button
+                        onClick={() => setPersona('saas-landing')}
+                        className="px-4 py-2 bg-rose-800 hover:bg-rose-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Voltar à Página Principal
+                      </button>
+                    </div>
+                  }
+                >
+                  <GatekeeperPortal
+                    guests={guests}
+                    onCheckIn={handleDoorCheckIn}
+                    clientName={`${weddingConfig.brideGroom?.groomName || 'Noivo'} & ${weddingConfig.brideGroom?.brideName || 'Noiva'}`}
+                    onExitPortal={() => setPersona('saas-landing')}
+                    isLocked={isPortariaLocked}
+                  />
+                </FeatureGate>
+              </motion.div>
+            );
+          })()}
 
           {/* PUBLIC INVITE VIEW */}
           {persona === 'public-invite' && (
@@ -1568,6 +1776,19 @@ export default function App() {
           weddingConfig={weddingConfig}
           guests={guests}
           auditLogs={auditLogs}
+        />
+      )}
+
+      {/* ACTIVATION REQUEST MODAL */}
+      {showActivationModal && (
+        <ActivationRequestModal
+          isOpen={showActivationModal}
+          onClose={() => setShowActivationModal(false)}
+          client={clients.find(c => c.id === activeClientId) || clients[0]}
+          onRequestSubmitted={(_req) => {
+            showAuthToast('login', 'Solicitação de Ativação Enviada!', 'A sua solicitação foi encaminhada para validação pelo SuperAdmin. Em minutos o seu plano será ativado.');
+            setShowActivationModal(false);
+          }}
         />
       )}
     </div>

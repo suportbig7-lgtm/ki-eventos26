@@ -333,6 +333,60 @@ export const dbService = {
     }
   },
 
+  activation: {
+    async submit(request: any): Promise<{ success: boolean; error?: string }> {
+      try {
+        const res = await fetch('/api/activation-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        });
+        const data = await res.json();
+        return data;
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+
+    async getAll(): Promise<any[]> {
+      try {
+        const res = await fetch('/api/activation-requests');
+        if (res.ok) {
+          const data = await res.json();
+          return data.requests || [];
+        }
+      } catch (e) {}
+      return [];
+    },
+
+    async approve(requestId: string): Promise<{ success: boolean; client?: any; error?: string }> {
+      try {
+        const res = await fetch(`/api/activation-requests/${requestId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        return data;
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+
+    async reject(requestId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+      try {
+        const res = await fetch(`/api/activation-requests/${requestId}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        return data;
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    }
+  },
+
   serverSync: {
     async pull(): Promise<any> {
       try {

@@ -9,17 +9,20 @@ import {
   Heart, BookOpen, QrCode, ChevronRight, X,
   ShoppingBag, Coins, Trophy, Target, ArrowUpRight, Search, ChevronDown, SlidersHorizontal, Download
 } from 'lucide-react';
-import { Guest, WeddingConfig, TodoItem } from '../types';
+import { Guest, WeddingConfig, TodoItem, ClientWeddingSaaS } from '../types';
 import { getSafeImageUrl, handleImageError } from '../utils/imageFallback';
 import { downloadQrCodeImage } from '../utils/qrCodeHelper';
 import { downloadPhysicalCardQrPdf } from '../utils/pdfGenerator';
 import EventOnboardingModal from './EventOnboardingModal';
 import UpgradePlanModal from './UpgradePlanModal';
+import ActivationRequestModal from './ActivationRequestModal';
+import { usePlanPermissions } from '../hooks/usePlanPermissions';
 
 interface SaaSOverviewProps {
   guests: Guest[];
   config: WeddingConfig;
   planName: string;
+  client?: ClientWeddingSaaS;
   onUpdateConfig?: (config: WeddingConfig) => void;
   onNavigateTab?: (tab: string) => void;
   onOpenPublicInvite?: () => void;
@@ -29,10 +32,12 @@ export default function SaaSOverview({
   guests, 
   config, 
   planName, 
+  client,
   onUpdateConfig, 
   onNavigateTab, 
   onOpenPublicInvite 
 }: SaaSOverviewProps) {
+  const permissions = usePlanPermissions(client, guests.length);
   const [copiedInviteLink, setCopiedInviteLink] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -44,6 +49,8 @@ export default function SaaSOverview({
     return Boolean(config.isNewProfile || !config.onboardingCompleted);
   });
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [showActivationModal, setShowActivationModal] = useState<boolean>(false);
+  const [activationSubmittedToast, setActivationSubmittedToast] = useState(false);
 
   // Stats
   const totalGuests = guests.length;
@@ -281,7 +288,8 @@ export default function SaaSOverview({
                 type="button"
                 onClick={() => {
                   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                  const link = `${origin}/?invite=convite&clientId=${config.clientId || 'client_1'}`;
+                  const targetCid = config.clientId || config.id || 'client_1';
+                  const link = `${origin}/?clientId=${targetCid}&invite=convite`;
                   navigator.clipboard.writeText(link);
                   setCopiedInviteLink(true);
                   setTimeout(() => setCopiedInviteLink(false), 3000);
@@ -289,20 +297,48 @@ export default function SaaSOverview({
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700 hover:border-[#8E2840]/40 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
               >
                 <Share2 className="w-3.5 h-3.5 text-[#8E2840]" />
-                <span>{copiedInviteLink ? 'Link Copiado!' : 'Copiar Link'}</span>
+                <span>{copiedInviteLink ? 'Link Copiado!' : 'Copiar Link Convite'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
                   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                  const link = `${origin}/?invite=convite&clientId=${config.clientId || 'client_1'}`;
+                  const targetCid = config.clientId || config.id || 'client_1';
+                  const link = `${origin}/?clientId=${targetCid}&invite=convite`;
+                  const groom = config.brideGroom?.groomName?.trim() || 'Noivo';
+                  const bride = config.brideGroom?.brideName?.trim() || 'Noiva';
+                  const msg = `💍 *Convite Oficial de Casamento* 💍\n\nOlá! Com imensa alegria convidamos você para celebrar o nosso casamento:\n✨ *${groom} & ${bride}*\n\nAcesse o link abaixo para visualizar todos os detalhes e confirmar a sua presença:\n🔗 ${link}`;
+                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                title="Partilhar convite no WhatsApp"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                  const targetCid = config.clientId || config.id || 'client_1';
+                  const link = `${origin}/?clientId=${targetCid}&invite=convite`;
                   downloadPhysicalCardQrPdf(config, link);
                 }}
                 className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700 hover:border-[#9E7A36]/40 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
               >
                 <Printer className="w-3.5 h-3.5 text-[#9E7A36]" />
                 <span>Cartão A6 QR</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowActivationModal(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                <span>Solicitar Ativação</span>
               </button>
 
               {onOpenPublicInvite && (
@@ -318,6 +354,39 @@ export default function SaaSOverview({
             </div>
           </div>
         </div>
+
+        {/* PROMINENT ACTIVATION BANNER FOR TRIAL / NON-LUXURY */}
+        {(permissions.isTrial || permissions.isGuestLimitExceeded || !permissions.canUseGatekeeperPortal) && (
+          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-stone-900 border border-amber-200 dark:border-amber-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-stone-900 dark:text-white">
+                  {permissions.isGuestLimitExceeded 
+                    ? `Limite de Convidados Atingido (${guests.length}/${permissions.maxGuests})` 
+                    : permissions.isTrial 
+                    ? 'Versão de Degustação Ativa (Plano Grátis)' 
+                    : 'Ative o Pacote Luanda VIP ou Recursos Avançados'}
+                </div>
+                <div className="text-[11px] text-stone-500 dark:text-stone-400">
+                  {permissions.isGuestLimitExceeded
+                    ? `O seu plano atual atingiu o teto de ${permissions.maxGuests} convidados. Solicite a ativação para convidar sem limites.`
+                    : 'Desbloqueie convidados ilimitados, álbum coletivo dos convidados e leitor de QR Code para porteiros em tempo real.'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowActivationModal(true)}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <span>Ativar Pacote Agora</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 4 KEY KPI STATS CARDS */}
@@ -958,6 +1027,26 @@ export default function SaaSOverview({
         onClose={() => setShowUpgradeModal(false)}
         config={config}
         currentPlan={planName}
+      />
+
+      {/* ACTIVATION REQUEST MODAL */}
+      <ActivationRequestModal
+        isOpen={showActivationModal}
+        onClose={() => setShowActivationModal(false)}
+        client={{
+          id: config.clientId || config.id || 'client_1',
+          clientName: coupleDisplayName,
+          clientEmail: config.contactInfo?.email || 'casal@kutxi.ao',
+          weddingDate: config.date ? config.date.split('T')[0] : '2026-10-25',
+          plan: 'Basic',
+          status: 'Trial',
+          revenue: 0,
+          config
+        }}
+        onRequestSubmitted={() => {
+          setActivationSubmittedToast(true);
+          setTimeout(() => setActivationSubmittedToast(false), 4000);
+        }}
       />
     </div>
   );
