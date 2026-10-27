@@ -61,6 +61,7 @@ interface CompactWeddingPayload {
     p?: string[]; // photos
   };
   co?: string; // theme primaryColor
+  u?: number; // updatedAt timestamp
 }
 
 function sanitizeUrlForPayload(url: string | undefined): string | undefined {
@@ -156,7 +157,8 @@ export function encodeWeddingPayload(config: WeddingConfig): string {
         cv: coverImage,
         p: rawPhotos.length > 0 ? rawPhotos : undefined
       } : undefined,
-      co: config.theme?.primaryColor
+      co: config.theme?.primaryColor,
+      u: config.updatedAt || Date.now()
     };
 
     const json = JSON.stringify(payload);
@@ -322,6 +324,7 @@ export function decodeWeddingPayload(payloadStr: string): WeddingConfig | null {
       };
     }
 
+    base.updatedAt = parsed.u || Date.now();
     base.customFooter = `Com amor, sempre. — ${groomName} & ${brideName}`;
     return base;
   } catch (err) {

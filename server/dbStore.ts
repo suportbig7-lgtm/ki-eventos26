@@ -85,14 +85,25 @@ export function getServerDb(): ServerDatabase {
           parsed.weddingConfigs = {};
         }
 
-        // Union merge INITIAL_CLIENTS so all 3 profiles are guaranteed present across all deployments
+        // Union merge INITIAL_CLIENTS so all profiles are guaranteed present across all deployments
         INITIAL_CLIENTS.forEach(ic => {
-          const exists = parsed.clients.some(c => c.id === ic.id || c.clientEmail?.toLowerCase() === ic.clientEmail?.toLowerCase());
-          if (!exists) {
+          const idx = parsed.clients.findIndex(c => c.id === ic.id);
+          if (idx < 0) {
             parsed.clients.push(ic);
+          } else {
+            const icTs = getTs(ic);
+            const exTs = getTs(parsed.clients[idx]);
+            if (icTs > exTs) {
+              parsed.clients[idx] = { ...parsed.clients[idx], ...ic, updatedAt: icTs };
+            }
           }
-          if (ic.config && (!parsed.weddingConfigs[ic.id] || !parsed.weddingConfigs[ic.id].brideGroom?.groomName)) {
-            parsed.weddingConfigs[ic.id] = ic.config;
+          if (ic.config) {
+            const curCfg = parsed.weddingConfigs[ic.id];
+            const icCfgTs = getTs(ic.config);
+            const curCfgTs = getTs(curCfg);
+            if (!curCfg || !curCfg.brideGroom?.groomName || icCfgTs > curCfgTs) {
+              parsed.weddingConfigs[ic.id] = ic.config;
+            }
           }
         });
 
@@ -282,8 +293,25 @@ export function registerCouple(
   return saveServerDb(db);
 }
 
+// Helper to safely extract millisecond timestamp
+const getTs = (obj: any): number => {
+  if (!obj) return 0;
+  if (typeof obj.updatedAt === 'number' && !isNaN(obj.updatedAt)) return obj.updatedAt;
+  if (typeof obj.updatedAt === 'string') {
+    const parsed = Date.parse(obj.updatedAt);
+    if (!isNaN(parsed)) return parsed;
+  }
+  if (obj.createdAt) {
+    const parsed = Date.parse(obj.createdAt);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return 0;
+};
+
 /**
  * Intelligent bidirectional sync of client data with server
+ * Employs Timestamp-Based Conflict Resolution (Last-Write-Wins based on explicit updatedAt).
+ * Outdated client snapshots will never overwrite newer server updates.
  */
 export function syncWithServer(payload: {
   clients?: ClientWeddingSaaS[];
@@ -311,27 +339,80 @@ export function syncWithServer(payload: {
     }
   }
 
-  // 2. Merge Clients
+  // 2. Merge Clients (Timestamp-based conflict resolution)
   if (payload.clients && Array.isArray(payload.clients)) {
     for (const incoming of payload.clients) {
       if (!incoming?.id) continue;
       const idx = db.clients.findIndex(c => c.id === incoming.id);
+      const incomingTs = getTs(incoming);
+
       if (idx >= 0) {
-        db.clients[idx] = { ...db.clients[idx], ...incoming };
+        const existing = db.clients[idx];
+        const existingTs = getTs(existing);
+
+        // Only overwrite if incoming version has equal or newer timestamp
+        if (incomingTs >= existingTs) {
+          const mergedUpdatedAt = Math.max(incomingTs, Date.now());
+          db.clients[idx] = { 
+            ...existing, 
+            ...incoming, 
+            updatedAt: mergedUpdatedAt 
+          };
+
+          if (incoming.config) {
+            const incomingConfigTs = getTs(incoming.config) || incomingTs;
+            const existingConfigTs = getTs(db.weddingConfigs[incoming.id]);
+            if (incomingConfigTs >= existingConfigTs) {
+              db.weddingConfigs[incoming.id] = {
+                ...incoming.config,
+                updatedAt: Math.max(incomingConfigTs, mergedUpdatedAt)
+              };
+            }
+          }
+        }
+        // If existingTs > incomingTs: retain newer server version, ignore outdated incoming
       } else {
-        db.clients.push(incoming);
-      }
-      if (incoming.config) {
-        db.weddingConfigs[incoming.id] = incoming.config;
+        const newTs = incomingTs || Date.now();
+        db.clients.push({
+          ...incoming,
+          updatedAt: newTs
+        });
+        if (incoming.config) {
+          db.weddingConfigs[incoming.id] = {
+            ...incoming.config,
+            updatedAt: getTs(incoming.config) || newTs
+          };
+        }
       }
     }
   }
 
-  // 3. Merge Wedding Configs
+  // 3. Merge Wedding Configs (Timestamp-based conflict resolution)
   if (payload.weddingConfigs && typeof payload.weddingConfigs === 'object') {
-    for (const [cid, cfg] of Object.entries(payload.weddingConfigs)) {
-      if (cfg && cid) {
-        db.weddingConfigs[cid] = cfg;
+    for (const [cid, incomingCfg] of Object.entries(payload.weddingConfigs)) {
+      if (incomingCfg && cid) {
+        const existingCfg = db.weddingConfigs[cid];
+        const incomingTs = getTs(incomingCfg);
+        const existingTs = getTs(existingCfg);
+
+        // Only update if incoming is newer or equal
+        if (!existingCfg || incomingTs >= existingTs) {
+          const resolvedTs = Math.max(incomingTs, Date.now());
+          db.weddingConfigs[cid] = {
+            ...incomingCfg,
+            updatedAt: resolvedTs
+          };
+
+          // Keep client object's config in sync if timestamp is higher
+          const client = db.clients.find(c => c.id === cid || c.config?.id === cid);
+          if (client && (incomingTs >= getTs(client))) {
+            client.config = db.weddingConfigs[cid];
+            client.updatedAt = resolvedTs;
+            if (incomingCfg.brideGroom?.groomName && incomingCfg.brideGroom?.brideName) {
+              client.clientName = `${incomingCfg.brideGroom.groomName} & ${incomingCfg.brideGroom.brideName}`;
+            }
+          }
+        }
       }
     }
   }

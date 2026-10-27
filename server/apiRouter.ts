@@ -311,20 +311,29 @@ apiRouter.post('/wedding-config/:clientId', (req, res) => {
     const cid = req.params.clientId;
     const config = req.body;
     const db = getServerDb();
-    db.weddingConfigs[cid] = config;
-    const client = db.clients.find(c => 
-      c.id === cid || 
-      c.config?.id === cid || 
-      c.config?.slug === cid
-    );
-    if (client) {
-      client.config = config;
-      if (config.brideGroom?.groomName && config.brideGroom?.brideName) {
-        client.clientName = `${config.brideGroom.groomName} & ${config.brideGroom.brideName}`;
+    const now = Date.now();
+    const incomingTs = Number(config.updatedAt) || now;
+    const existing = db.weddingConfigs[cid];
+    const existingTs = Number(existing?.updatedAt) || 0;
+
+    if (!existing || incomingTs >= existingTs) {
+      config.updatedAt = Math.max(incomingTs, now);
+      db.weddingConfigs[cid] = config;
+      const client = db.clients.find(c => 
+        c.id === cid || 
+        c.config?.id === cid || 
+        c.config?.slug === cid
+      );
+      if (client) {
+        client.config = config;
+        client.updatedAt = config.updatedAt;
+        if (config.brideGroom?.groomName && config.brideGroom?.brideName) {
+          client.clientName = `${config.brideGroom.groomName} & ${config.brideGroom.brideName}`;
+        }
       }
+      saveServerDb(db);
     }
-    saveServerDb(db);
-    return res.json({ success: true, config });
+    return res.json({ success: true, config: db.weddingConfigs[cid] || config });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

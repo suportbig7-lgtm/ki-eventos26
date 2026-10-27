@@ -342,45 +342,46 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
   id: 'client_joao_alice',
   slug: 'joao-alice',
   clientId: 'client_joao_alice',
+  updatedAt: 1793020883177,
   isFirstLogin: false,
   isNewProfile: false,
   onboardingCompleted: true,
   brideGroom: {
     groomName: 'João',
     groomFullName: 'João dos Santos',
-    groomBio: 'Apaixonado pela vida e grato por celebrar este momento tão especial ao lado da Alice.',
+    groomBio: 'Apaixonado pela vida e grato por celebrar este momento tão especial com você.',
     groomParents: 'Sr. Mateus dos Santos & Sra. Helena dos Santos',
     groomPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800',
     brideName: 'Alice',
     brideFullName: 'Alice de Oliveira',
-    brideBio: 'Com o coração transbordando de gratidão e amor por iniciar este lindo capítulo ao lado do João.',
+    brideBio: 'Ansiosa por dizer o "Sim" e iniciar o capítulo mais bonito da nossa caminhada.',
     brideParents: 'Sr. Domingos de Oliveira & Sra. Maria de Oliveira',
     bridePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800',
     couplePhoto: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
   },
   date: '2026-11-14T16:00:00',
   storyTitle: 'Nossa História de Amor',
-  storyContent: 'Nos conhecemos num fim de tarde na Baía de Luanda. O que começou como uma conversa leve logo se transformou numa parceria inseparável de cumplicidade, viagens e sonhos compartilhados. Hoje celebramos nossa união com quem mais amamos.',
+  storyContent: 'Nos conhecemos num belo fim de tarde à beira da Baía de Luanda. Anos de risadas, desafios superados e um amor que cresceu e amadureceu diante de Deus.',
   timeline: [
     {
       id: 't1_ja',
       time: '10:30',
       title: 'Cerimónia Civil (Registo)',
-      description: 'Assinatura oficial na Conservatória do Registo Civil com os padrinhos e testemunhas.',
+      description: 'Assinatura oficial na Conservatória do Registo Civil, Rua Rainha Ginga, Luanda.',
       icon: 'FileText'
     },
     {
       id: 't2_ja',
-      time: '15:30',
+      time: '16:00',
       title: 'Celebração Religiosa',
-      description: 'Bênção nupcial na Sé Catedral de Luanda.',
+      description: 'Bênção nupcial na Igreja Metodista Unida Gaspar Adão De Almeida.',
       icon: 'Heart'
     },
     {
       id: 't3_ja',
       time: '18:00',
       title: 'Copo de Água & Recepção',
-      description: 'Jantar de gala, brinde aos noivos e corte do bolo no Espaço Jardins de Talatona.',
+      description: 'Jantar e celebração na Igreja Metodista Unida Gaspar Adão De Almeida.',
       icon: 'UtensilsCrossed'
     },
     {
@@ -392,17 +393,17 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
     }
   ],
   venue: {
-    ceremonyName: 'Sé Catedral de Luanda',
-    ceremonyAddress: 'Largo da Sé, Cidade Alta, Luanda',
-    ceremonyTime: '15:30',
-    churchName: 'Sé Catedral de Luanda',
-    churchAddress: 'Largo da Sé, Cidade Alta, Luanda',
-    churchTime: '15:30',
+    ceremonyName: 'Igreja Metodista Unida Gaspar Adão De Almeida',
+    ceremonyAddress: 'Luanda, Angola',
+    ceremonyTime: '16:00',
+    churchName: 'Igreja Metodista Unida Gaspar Adão De Almeida',
+    churchAddress: 'Luanda, Angola',
+    churchTime: '16:00',
     civilName: 'Conservatória do Registo Civil',
-    civilAddress: 'Luanda, Angola',
+    civilAddress: 'Rua Rainha Ginga, Luanda, Angola',
     civilTime: '10:30',
-    receptionName: 'Espaço de Eventos Jardins de Talatona',
-    receptionAddress: 'Via AL 15, Talatona, Luanda',
+    receptionName: 'Igreja Metodista Unida Gaspar Adão De Almeida',
+    receptionAddress: 'Luanda, Angola',
     receptionTime: '18:00',
     receptionMapsUrl: 'https://maps.google.com'
   },
@@ -723,6 +724,7 @@ export const INITIAL_CLIENTS: ClientWeddingSaaS[] = [
     guestCount: 120,
     rsvpsReceived: 85,
     createdAt: '2026-10-20',
+    updatedAt: 1793010000000,
     features: {
       maxGuests: 9999,
       allowWhatsAppAutomation: true,
@@ -742,6 +744,7 @@ export const INITIAL_CLIENTS: ClientWeddingSaaS[] = [
     guestCount: 65,
     rsvpsReceived: 42,
     createdAt: '2026-10-21',
+    updatedAt: 1793015000000,
     features: {
       maxGuests: 150,
       allowWhatsAppAutomation: false,
@@ -761,6 +764,33 @@ export const INITIAL_CLIENTS: ClientWeddingSaaS[] = [
     guestCount: 180,
     rsvpsReceived: 140,
     createdAt: '2026-10-22',
+    updatedAt: 1793020883177,
+    features: {
+      maxGuests: 9999,
+      allowWhatsAppAutomation: true,
+      allowCollectiveAlbum: true,
+      allowGatekeeperPortal: true
+    }
+  },
+  {
+    id: 'client_1793020883177',
+    clientName: 'João & Alice',
+    clientEmail: 'jhonkutxi@gmail.com',
+    weddingDate: '2026-11-14',
+    plan: 'Luxury',
+    status: 'Active',
+    revenue: 110000,
+    config: {
+      ...CONFIG_JOAO_ALICE,
+      id: 'client_1793020883177',
+      clientId: 'client_1793020883177',
+      slug: 'client_1793020883177',
+      updatedAt: 1793020883177
+    },
+    guestCount: 180,
+    rsvpsReceived: 140,
+    createdAt: '2026-10-22',
+    updatedAt: 1793020883177,
     features: {
       maxGuests: 9999,
       allowWhatsAppAutomation: true,

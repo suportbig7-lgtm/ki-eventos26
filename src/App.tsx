@@ -473,12 +473,27 @@ export default function App() {
         } catch (e) {}
       }
 
-      // 2. Synchronize bidirectionally with the server (ADDITIVE UNION)
+      // Helper to safely extract timestamp
+      const getTs = (obj: any): number => {
+        if (!obj) return 0;
+        if (typeof obj.updatedAt === 'number' && !isNaN(obj.updatedAt)) return obj.updatedAt;
+        if (typeof obj.updatedAt === 'string') {
+          const parsed = Date.parse(obj.updatedAt);
+          if (!isNaN(parsed)) return parsed;
+        }
+        if (obj.createdAt) {
+          const parsed = Date.parse(obj.createdAt);
+          if (!isNaN(parsed)) return parsed;
+        }
+        return 0;
+      };
+
+      // 2. Synchronize bidirectionally with the server with timestamp conflict resolution
       const serverState = await dbService.serverSync.push({
         userAccounts: localAccounts,
         clients: localClients,
         saasPlans: saasPlans,
-        weddingConfigs: activeClientId ? { [activeClientId]: localWeddingConfig } : undefined
+        weddingConfigs: activeClientId && localWeddingConfig ? { [activeClientId]: localWeddingConfig } : undefined
       });
 
       if (serverState) {
@@ -494,21 +509,29 @@ export default function App() {
           });
         }
 
-        // Sync clients: UNION MERGE (Never drop clients created on other browsers)
+        // Sync clients: TIMESTAMP-BASED CONFLICT RESOLUTION
         if (Array.isArray(serverState.clients) && serverState.clients.length > 0) {
           setClients(prev => {
             const clientMap = new Map<string, ClientWeddingSaaS>();
             prev.forEach(c => clientMap.set(c.id, c));
-            serverState.clients.forEach((c: ClientWeddingSaaS) => {
-              const existing = clientMap.get(c.id);
-              if (existing) {
-                clientMap.set(c.id, { 
-                  ...existing, 
-                  ...c, 
-                  config: c.config || existing.config 
-                });
+            serverState.clients.forEach((serverClient: ClientWeddingSaaS) => {
+              const existing = clientMap.get(serverClient.id);
+              if (!existing) {
+                clientMap.set(serverClient.id, serverClient);
               } else {
-                clientMap.set(c.id, c);
+                const serverTs = getTs(serverClient);
+                const localTs = getTs(existing);
+                // Only adopt server version if server is newer or equal
+                if (serverTs >= localTs) {
+                  const serverCfgTs = getTs(serverClient.config);
+                  const localCfgTs = getTs(existing.config);
+                  clientMap.set(serverClient.id, { 
+                    ...existing, 
+                    ...serverClient, 
+                    config: serverCfgTs >= localCfgTs ? (serverClient.config || existing.config) : existing.config,
+                    updatedAt: Math.max(serverTs, localTs)
+                  });
+                }
               }
             });
             const merged = sanitizeClientsList(Array.from(clientMap.values()));
@@ -523,20 +546,45 @@ export default function App() {
           safeSetItem('kutxi_saas_plans', JSON.stringify(serverState.saasPlans));
         }
 
-        // Sync current active wedding config from server if available
-        if (activeClientId && serverState.weddingConfigs && serverState.weddingConfigs[activeClientId]) {
-          const cloudConfig = serverState.weddingConfigs[activeClientId];
-          if (cloudConfig.brideGroom?.groomName || cloudConfig.brideGroom?.brideName) {
-            setWeddingConfig(cloudConfig);
-            safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(cloudConfig));
+        // Sync current active wedding config with timestamp conflict resolution
+        if (activeClientId && serverState.weddingConfigs) {
+          const cloudConfig = serverState.weddingConfigs[activeClientId] || 
+            (activeClientId === 'client_1793020883177' ? serverState.weddingConfigs['client_joao_alice'] : undefined);
+
+          if (cloudConfig && (cloudConfig.brideGroom?.groomName || cloudConfig.brideGroom?.brideName)) {
+            const cloudTs = getTs(cloudConfig);
+            const localTs = getTs(localWeddingConfig);
+            
+            // Only adopt server config if cloud version is equal or newer than local version
+            if (cloudTs >= localTs || !localWeddingConfig.brideGroom?.groomName) {
+              setWeddingConfig(cloudConfig);
+              safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(cloudConfig));
+            }
           }
         }
 
-        // Sync current active guests from server if available
+        // Sync current active guests with timestamp conflict resolution
         if (activeClientId && serverState.guests && serverState.guests[activeClientId]) {
           const cloudGuests = serverState.guests[activeClientId];
-          setGuests(cloudGuests);
-          safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(cloudGuests));
+          setGuests(prev => {
+            const guestMap = new Map<string, Guest>();
+            prev.forEach(g => guestMap.set(g.id, g));
+            cloudGuests.forEach((cg: Guest) => {
+              const localG = guestMap.get(cg.id);
+              if (!localG) {
+                guestMap.set(cg.id, cg);
+              } else {
+                const cloudGTs = getTs(cg);
+                const localGTs = getTs(localG);
+                if (cloudGTs >= localGTs) {
+                  guestMap.set(cg.id, cg);
+                }
+              }
+            });
+            const mergedGuests = Array.from(guestMap.values());
+            safeSetItem(`kutxi_guests_${activeClientId}`, JSON.stringify(mergedGuests));
+            return mergedGuests;
+          });
         }
 
         setLastSyncTime(new Date().toLocaleTimeString('pt-AO'));
@@ -777,11 +825,13 @@ export default function App() {
           (c.config?.id && c.config.id.toLowerCase() === lookupToken.toLowerCase()) ||
           (lookupToken.includes('joao') && c.id === 'client_joao_alice') ||
           (lookupToken.includes('pedro') && c.id === 'client_pedro_pureza') ||
-          (lookupToken.includes('osvaldo') && c.id === 'client_osvaldo_nicidia')
+          (lookupToken.includes('osvaldo') && c.id === 'client_osvaldo_nicidia') ||
+          (lookupToken.includes('1793020883177') && (c.id === 'client_1793020883177' || c.id === 'client_joao_alice'))
         ) || INITIAL_CLIENTS.find(c =>
           (c.config?.slug && c.config.slug.toLowerCase() === lookupToken.toLowerCase()) ||
           c.id.toLowerCase() === lookupToken.toLowerCase() ||
-          (c.config?.id && c.config.id.toLowerCase() === lookupToken.toLowerCase())
+          (c.config?.id && c.config.id.toLowerCase() === lookupToken.toLowerCase()) ||
+          (lookupToken.includes('1793020883177') && (c.id === 'client_1793020883177' || c.id === 'client_joao_alice'))
         );
       }
 
@@ -813,8 +863,21 @@ export default function App() {
 
         addAuditLog('Convidado', 'Convite Carregado', `Convite oficial "${finalConfig.brideGroom?.groomName} & ${finalConfig.brideGroom?.brideName}" carregado via slug: ${finalSlug}`, 'rsvp');
 
-        // Sync with server in background
-        fetch(`/api/wedding-config/${finalCid}`).catch(() => {});
+        // Sync with server in background with timestamp comparison
+        fetch(`/api/wedding-config/${finalCid}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.config) {
+              const cloudTs = Number(data.config.updatedAt) || 0;
+              const currentTs = Number(finalConfig.updatedAt) || 0;
+              if (cloudTs >= currentTs) {
+                setWeddingConfig(data.config);
+                safeSetItem(`kutxi_wedding_config_${finalCid}`, JSON.stringify(data.config));
+              }
+            }
+          })
+          .catch(() => {});
+
         fetch(`/api/guests/${finalCid}`)
           .then(res => res.json())
           .then(data => {
@@ -823,11 +886,36 @@ export default function App() {
             }
           }).catch(() => {});
       } else {
-        // Token is NOT valid: show friendly notice and redirect to landing
-        setInvalidInviteNotice(`O convite "${lookupToken}" não foi localizado ou o link é inválido.`);
-        setPersona('saas-landing');
-        setIsInviteLocked(false);
-        window.history.replaceState({}, '', window.location.origin);
+        // Query server before declaring invalid
+        fetch(`/api/wedding-config/${lookupToken}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.config && (data.config.brideGroom?.groomName || data.config.brideGroom?.brideName)) {
+              const fetchedCfg = data.config;
+              const cid = fetchedCfg.clientId || fetchedCfg.id || lookupToken;
+              setWeddingConfig(fetchedCfg);
+              setActiveClientId(cid);
+              safeSetItem(`kutxi_wedding_config_${cid}`, JSON.stringify(fetchedCfg));
+              safeSetItem('kutxi_active_client_id', cid);
+              setPersona('public-invite');
+              setIsInviteLocked(true);
+              const cleanToken = token && token !== 'convite' ? token : '';
+              setUrlGuestToken(cleanToken);
+              const slug = fetchedCfg.slug || cid.replace(/^client_/, '');
+              window.history.replaceState({}, '', `${window.location.origin}/?invite=${slug}${cleanToken ? `&token=${cleanToken}` : ''}`);
+            } else {
+              setInvalidInviteNotice(`O convite "${lookupToken}" não foi localizado ou o link é inválido.`);
+              setPersona('saas-landing');
+              setIsInviteLocked(false);
+              window.history.replaceState({}, '', window.location.origin);
+            }
+          })
+          .catch(() => {
+            setInvalidInviteNotice(`O convite "${lookupToken}" não foi localizado ou o link é inválido.`);
+            setPersona('saas-landing');
+            setIsInviteLocked(false);
+            window.history.replaceState({}, '', window.location.origin);
+          });
       }
     }
   }, [clients]);
@@ -848,17 +936,22 @@ export default function App() {
 
   // --- HANDLERS ---
   const handleUpdateWeddingConfig = (updated: WeddingConfig) => {
-    setWeddingConfig(updated);
+    const now = Date.now();
+    const timestamped: WeddingConfig = {
+      ...updated,
+      updatedAt: now
+    };
+    setWeddingConfig(timestamped);
     if (activeClientId) {
-      safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(updated));
-      safeSetItem('kutxi_wedding_config', JSON.stringify(updated));
-      dbService.weddingConfig.save(activeClientId, updated).catch(() => {});
+      safeSetItem(`kutxi_wedding_config_${activeClientId}`, JSON.stringify(timestamped));
+      safeSetItem('kutxi_wedding_config', JSON.stringify(timestamped));
+      dbService.weddingConfig.save(activeClientId, timestamped).catch(() => {});
 
       // Instantly sync with server database
       fetch(`/api/wedding-config/${activeClientId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
+        body: JSON.stringify(timestamped)
       }).catch(() => {});
 
       // Instant synchronization across the app
@@ -867,9 +960,10 @@ export default function App() {
           if (c.id === activeClientId || c.config?.id === activeClientId || (activeClientId === 'client_1' && c.id === 'client_1')) {
             return {
               ...c,
-              clientName: `${updated.brideGroom?.groomName || 'Noivo'} & ${updated.brideGroom?.brideName || 'Noiva'}`,
-              weddingDate: updated.date ? updated.date.split('T')[0] : c.weddingDate,
-              config: updated
+              clientName: `${timestamped.brideGroom?.groomName || 'Noivo'} & ${timestamped.brideGroom?.brideName || 'Noiva'}`,
+              weddingDate: timestamped.date ? timestamped.date.split('T')[0] : c.weddingDate,
+              config: timestamped,
+              updatedAt: now
             };
           }
           return c;
@@ -881,11 +975,11 @@ export default function App() {
       // Broadcast update across windows and previews
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('kutxi_wedding_config_changed', {
-          detail: { clientId: activeClientId, config: updated }
+          detail: { clientId: activeClientId, config: timestamped }
         }));
       }
     }
-    addAuditLog(`${updated.brideGroom?.groomName || 'Noivo'} & ${updated.brideGroom?.brideName || 'Noiva'}`, 'Convite Atualizado', 'Informações e estilos do casamento sincronizados instantaneamente.', 'system');
+    addAuditLog(`${timestamped.brideGroom?.groomName || 'Noivo'} & ${timestamped.brideGroom?.brideName || 'Noiva'}`, 'Convite Atualizado', 'Informações e estilos do casamento sincronizados instantaneamente.', 'system');
   };
 
   /**

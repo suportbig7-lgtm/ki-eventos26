@@ -208,6 +208,7 @@ export interface WeddingConfig {
   isNewProfile?: boolean;
   onboardingCompleted?: boolean;
   muralComments?: MuralMessage[];
+  updatedAt?: number;
 }
 
 export type GuestGroup = 'Family' | 'Friends' | 'VIP' | 'Bride Side' | 'Groom Side' | 'Children' | 'Corporate';
@@ -241,6 +242,7 @@ export interface Guest {
   photoUrl?: string;
   notificationStatus?: 'sent' | 'failed' | 'pending';
   lastNotificationAt?: string;
+  updatedAt?: number;
 }
 
 export interface ClientFeatures {
@@ -264,6 +266,7 @@ export interface ClientWeddingSaaS {
   guestCount?: number;
   rsvpsReceived?: number;
   createdAt?: string;
+  updatedAt?: number;
   accessRevoked?: boolean;
   isComplimentary?: boolean;
   features?: ClientFeatures;
