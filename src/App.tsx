@@ -115,7 +115,14 @@ export default function App() {
 
   // --- AUTHENTICATION & MULTI-TENANT ACCOUNTS ---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('kutxi_is_authenticated') === 'true';
+    if (typeof window === 'undefined') return false;
+    if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
+      return true;
+    }
+    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+      return localStorage.getItem('kutxi_is_authenticated') === 'true';
+    }
+    return false;
   });
   const [isPortariaLocked, setIsPortariaLocked] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -168,13 +175,27 @@ export default function App() {
 
   const isInitialMount = useRef(true);
 
-  // Active User: defaults to empty or superadmin
+  // Active User: defaults to empty string (never pre-selects superadmin)
   const [activeUser, setActiveUser] = useState<string>(() => {
-    return localStorage.getItem('kutxi_active_user') || 'superadmin';
+    if (typeof window === 'undefined') return '';
+    if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
+      return sessionStorage.getItem('kutxi_session_user') || '';
+    }
+    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+      return localStorage.getItem('kutxi_active_user') || '';
+    }
+    return '';
   });
 
-  const [activeUserRole, setActiveUserRole] = useState<'superadmin' | 'couple' | 'staff'>(() => {
-    return (localStorage.getItem('kutxi_active_role') as any) || 'superadmin';
+  const [activeUserRole, setActiveUserRole] = useState<'superadmin' | 'couple' | 'staff' | null>(() => {
+    if (typeof window === 'undefined') return null;
+    if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
+      return (sessionStorage.getItem('kutxi_session_role') as any) || null;
+    }
+    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+      return (localStorage.getItem('kutxi_active_role') as any) || null;
+    }
+    return null;
   });
 
   // Default User Accounts with requested superadmin (user: superadmin / pass: admin123)
@@ -369,11 +390,31 @@ export default function App() {
   }, [activeClientId]);
 
   useEffect(() => {
-    safeSetItem('kutxi_active_user', activeUser);
+    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+      if (activeUser) {
+        safeSetItem('kutxi_active_user', activeUser);
+      } else {
+        localStorage.removeItem('kutxi_active_user');
+      }
+    } else if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
+      if (activeUser) {
+        sessionStorage.setItem('kutxi_session_user', activeUser);
+      }
+    }
   }, [activeUser]);
 
   useEffect(() => {
-    safeSetItem('kutxi_active_role', activeUserRole);
+    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+      if (activeUserRole) {
+        safeSetItem('kutxi_active_role', activeUserRole);
+      } else {
+        localStorage.removeItem('kutxi_active_role');
+      }
+    } else if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
+      if (activeUserRole) {
+        sessionStorage.setItem('kutxi_session_role', activeUserRole);
+      }
+    }
   }, [activeUserRole]);
 
   // --- REAL-TIME BI-DIRECTIONAL MULTI-DEVICE SYNCHRONIZATION ---
@@ -1261,10 +1302,27 @@ export default function App() {
 
                     <button
                       onClick={() => {
-                        const previousName = isSuperAdmin ? 'Super Administrador' : activeUser;
+                        const previousName = isSuperAdmin ? 'Super Administrador' : (activeUser || 'Utilizador');
                         setIsAuthenticated(false);
-                        safeSetItem('kutxi_is_authenticated', 'false');
-                        setActiveUser('superadmin');
+                        setActiveUser('');
+                        setActiveUserRole(null);
+
+                        // Clear persistent storage credentials
+                        try {
+                          localStorage.removeItem('kutxi_remember_me');
+                          localStorage.removeItem('kutxi_is_authenticated');
+                          localStorage.removeItem('kutxi_active_user');
+                          localStorage.removeItem('kutxi_active_role');
+                        } catch (e) {}
+
+                        // Clear session storage credentials
+                        try {
+                          sessionStorage.removeItem('kutxi_session_authenticated');
+                          sessionStorage.removeItem('kutxi_session_user');
+                          sessionStorage.removeItem('kutxi_session_role');
+                          sessionStorage.removeItem('kutxi_session_client_id');
+                        } catch (e) {}
+
                         setPersona('saas-landing');
                         addAuditLog('Segurança', 'Logout Realizado', 'Encerramento de sessão.', 'auth');
                         showAuthToast('logout', 'Sessão Encerrada com Sucesso', `Até breve, ${previousName}! Os seus dados foram salvos com segurança.`);
@@ -1832,12 +1890,35 @@ export default function App() {
         initialTab={authTab}
         selectedPackage={selectedPackage}
         userAccounts={userAccounts}
-        onLoginSuccess={(username, clientId, role) => {
+        clients={clients}
+        onLoginSuccess={(username, clientId, role, rememberMe) => {
           setIsAuthenticated(true);
-          safeSetItem('kutxi_is_authenticated', 'true');
           setActiveUser(username);
           setActiveUserRole((role as any) || (username === 'superadmin' ? 'superadmin' : 'couple'));
           setActiveClientId(clientId);
+
+          if (rememberMe) {
+            safeSetItem('kutxi_remember_me', 'true');
+            safeSetItem('kutxi_is_authenticated', 'true');
+            safeSetItem('kutxi_active_user', username);
+            safeSetItem('kutxi_active_role', (role as string) || (username === 'superadmin' ? 'superadmin' : 'couple'));
+            safeSetItem('kutxi_active_client_id', clientId);
+          } else {
+            // Strictly do NOT save auth data to localStorage if rememberMe was not checked
+            try {
+              localStorage.removeItem('kutxi_remember_me');
+              localStorage.removeItem('kutxi_is_authenticated');
+              localStorage.removeItem('kutxi_active_user');
+              localStorage.removeItem('kutxi_active_role');
+            } catch (e) {}
+
+            try {
+              sessionStorage.setItem('kutxi_session_authenticated', 'true');
+              sessionStorage.setItem('kutxi_session_user', username);
+              sessionStorage.setItem('kutxi_session_role', (role as string) || (username === 'superadmin' ? 'superadmin' : 'couple'));
+              sessionStorage.setItem('kutxi_session_client_id', clientId);
+            } catch (e) {}
+          }
           
           if (username === 'superadmin' || role === 'superadmin') {
             setPersona('super-admin');

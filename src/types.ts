@@ -329,4 +329,6 @@ export interface UserAccount {
   clientId: string;
   clientName: string;
   role?: 'superadmin' | 'couple' | 'staff';
+  email?: string;
+  googleId?: string;
 }

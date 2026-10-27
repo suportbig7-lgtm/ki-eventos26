@@ -13,7 +13,7 @@ import { dbService } from '../services/dbService';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (username: string, clientId: string, role?: string) => void;
+  onLoginSuccess: (username: string, clientId: string, role?: string, rememberMe?: boolean) => void;
   onRegisterSuccess: (
     client: ClientWeddingSaaS, 
     user1: { username: string; pass: string }, 
@@ -22,6 +22,7 @@ interface AuthModalProps {
   initialTab: 'login' | 'register';
   selectedPackage: string | null;
   userAccounts: UserAccount[];
+  clients?: ClientWeddingSaaS[];
 }
 
 export default function AuthModal({
@@ -31,10 +32,12 @@ export default function AuthModal({
   onRegisterSuccess,
   initialTab,
   selectedPackage,
-  userAccounts
+  userAccounts,
+  clients = []
 }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Login State
   const [loginUser, setLoginUser] = useState('');
@@ -89,7 +92,7 @@ export default function AuthModal({
       (cleanUser.toLowerCase() === 'ki-eventos' && cleanPass === 'kieventos123')
     ) {
       setIsLoginLoading(false);
-      onLoginSuccess('superadmin', 'system', 'superadmin');
+      onLoginSuccess('superadmin', 'system', 'superadmin', rememberMe);
       onClose();
       return;
     }
@@ -122,7 +125,7 @@ export default function AuthModal({
         }
 
         setIsLoginLoading(false);
-        onLoginSuccess(serverRes.user.username, serverRes.user.clientId, serverRes.user.role || 'couple');
+        onLoginSuccess(serverRes.user.username, serverRes.user.clientId, serverRes.user.role || 'couple', rememberMe);
         onClose();
         return;
       } else if (serverRes.error && !serverRes.error.includes('comunicação')) {
@@ -139,7 +142,7 @@ export default function AuthModal({
     );
     if (foundAccount) {
       setIsLoginLoading(false);
-      onLoginSuccess(foundAccount.username, foundAccount.clientId, foundAccount.role || 'couple');
+      onLoginSuccess(foundAccount.username, foundAccount.clientId, foundAccount.role || 'couple', rememberMe);
       onClose();
       return;
     }
@@ -257,20 +260,67 @@ export default function AuthModal({
     const googleEmail = targetEmail;
     const cleanUser = 'google_' + googleEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
     
-    // Check if account already exists
-    const existing = userAccounts.find(a => 
-      a.username.toLowerCase() === cleanUser.toLowerCase() || 
-      a.username.toLowerCase() === googleEmail.toLowerCase()
+    // 1. Verificação rigorosa de duplicidade de conta:
+    // Compara o email retornado pelo Google com userAccounts e clients
+    const matchedAccount = userAccounts.find(a => 
+      (a.email && a.email.trim().toLowerCase() === googleEmail) || 
+      a.username.trim().toLowerCase() === googleEmail ||
+      a.username.trim().toLowerCase() === cleanUser.toLowerCase() ||
+      (a.clientId && clients.some(c => c.id === a.clientId && c.clientEmail?.trim().toLowerCase() === googleEmail))
     );
 
-    if (existing) {
+    const matchedClient = clients.find(c => 
+      c.clientEmail && c.clientEmail.trim().toLowerCase() === googleEmail
+    );
+
+    // Se a conta já existir com o mesmo email: UNIFICAÇÃO AUTOMÁTICA
+    if (matchedAccount || matchedClient) {
+      const unifiedClientId = matchedAccount?.clientId || matchedClient?.id || 'client_1';
+      const unifiedUsername = matchedAccount?.username || cleanUser;
+      const unifiedRole = matchedAccount?.role || 'couple';
+
+      // Unifica credenciais e vincula Google ao registro existente
+      const updatedAccounts = userAccounts.map(a => {
+        if (a.clientId === unifiedClientId || a.username.toLowerCase() === unifiedUsername.toLowerCase()) {
+          return {
+            ...a,
+            email: googleEmail,
+            googleId: 'google_' + googleEmail
+          };
+        }
+        return a;
+      });
+
+      if (!updatedAccounts.some(a => a.username.toLowerCase() === unifiedUsername.toLowerCase())) {
+        updatedAccounts.push({
+          username: unifiedUsername,
+          pass: 'google_session',
+          clientId: unifiedClientId,
+          clientName: matchedClient?.clientName || 'Casal Kutxi',
+          role: 'couple',
+          email: googleEmail,
+          googleId: 'google_' + googleEmail
+        });
+      }
+
+      try {
+        localStorage.setItem('kutxi_user_accounts', JSON.stringify(updatedAccounts));
+      } catch (e) {}
+
+      // Sincroniza unificação com o servidor em segundo plano
+      dbService.serverSync.push({
+        userAccounts: updatedAccounts,
+        clients: clients.filter(c => c.id === unifiedClientId)
+      }).catch(() => {});
+
       setIsLoginLoading(false);
       setShowGooglePrompt(false);
-      onLoginSuccess(existing.username, existing.clientId, existing.role || 'couple');
+      onLoginSuccess(unifiedUsername, unifiedClientId, unifiedRole, rememberMe);
       onClose();
       return;
     }
 
+    // 2. Se for uma nova conta:
     const newClientId = 'client_g_' + Date.now().toString(36);
     const googleName = googleEmail.split('@')[0].replace(/[._-]/g, ' ');
     const displayName = googleName.charAt(0).toUpperCase() + googleName.slice(1);
@@ -305,8 +355,8 @@ export default function AuthModal({
       }
     };
 
-    const user1 = { username: cleanUser, pass: 'google_session', role: 'Noivo / Google' };
-    const user2 = { username: cleanUser + '_parceiro', pass: 'google_session', role: 'Noiva' };
+    const user1 = { username: cleanUser, pass: 'google_session', role: 'Noivo / Google', email: googleEmail };
+    const user2 = { username: cleanUser + '_parceiro', pass: 'google_session', role: 'Noiva', email: googleEmail };
 
     // Register on server database immediately so SuperAdmin and all devices receive it!
     try {
@@ -314,8 +364,8 @@ export default function AuthModal({
       await dbService.serverSync.push({
         clients: [newClient],
         userAccounts: [
-          { username: user1.username, pass: user1.pass, clientId: newClientId, clientName: newClient.clientName, role: 'couple' },
-          { username: user2.username, pass: user2.pass, clientId: newClientId, clientName: newClient.clientName, role: 'couple' }
+          { username: user1.username, pass: user1.pass, clientId: newClientId, clientName: newClient.clientName, role: 'couple', email: googleEmail },
+          { username: user2.username, pass: user2.pass, clientId: newClientId, clientName: newClient.clientName, role: 'couple', email: googleEmail }
         ],
         weddingConfigs: { [newClientId]: customConfig }
       });
@@ -326,7 +376,7 @@ export default function AuthModal({
     setIsLoginLoading(false);
     setShowGooglePrompt(false);
     onRegisterSuccess(newClient, user1, user2);
-    onLoginSuccess(user1.username, newClientId, 'couple');
+    onLoginSuccess(user1.username, newClientId, 'couple', rememberMe);
     onClose();
   };
 
@@ -426,6 +476,16 @@ export default function AuthModal({
                 className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-rose-800 font-medium"
               />
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none py-1">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-rose-800 focus:ring-rose-800 accent-rose-800 cursor-pointer"
+              />
+              <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">Lembrar de mim neste dispositivo</span>
+            </label>
 
             {loginError && (
               <div className="p-2.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-xl text-[11px]">
@@ -545,6 +605,18 @@ export default function AuthModal({
                 <span>{loginError}</span>
               </div>
             )}
+
+            <div className="flex items-center justify-between py-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-rose-800 focus:ring-rose-800 accent-rose-800 cursor-pointer"
+                />
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">Lembrar de mim</span>
+              </label>
+            </div>
 
             <button
               type="submit"

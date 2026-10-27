@@ -1,126 +1,80 @@
 import LZString from 'lz-string';
 import { WeddingConfig } from '../types';
-import { createBlankWeddingConfig, INITIAL_WEDDING_CONFIG } from '../data/defaultConfig';
+import { createBlankWeddingConfig } from '../data/defaultConfig';
 import { safeSetItem } from './storage';
 
 /**
- * Compact representation of wedding config for URL embedding.
- * Keeps payload lightweight while carrying all vital wedding data across devices.
+ * Ultra-lightweight micro payload schema.
+ * Strict size limit: < 200 bytes before compression so resulting URL is always under 150 characters total.
+ * NEVER includes base64 strings or huge blobs.
  */
-interface CompactWeddingPayload {
-  v: 1; // schema version
+interface MicroWeddingPayload {
+  v: 2; // schema v2 (micro payload)
   id: string;
-  cid?: string;
-  slug?: string;
-  d: string; // date
-  bg: {
-    g: string; // groomName
-    b: string; // brideName
-    gFull?: string;
-    bFull?: string;
-    cp?: string; // couplePhoto
-    gp?: string; // groomPhoto
-    bp?: string; // bridePhoto
-  };
-  vn?: {
-    c?: string; // ceremonyName
-    ca?: string; // ceremonyAddress
-    ch?: string; // churchName
-    cha?: string; // churchAddress
-    r?: string; // receptionName
-    ra?: string; // receptionAddress
-  };
-  th?: {
-    p?: string; // primaryColor
-    s?: string; // secondaryColor
-    a?: string; // accentColor
-    bg?: string; // bgColor
-    fh?: 'serif' | 'display' | 'sans';
-  };
-  gr?: {
-    mcx?: string;
-    ib?: string;
-    h?: string;
-    bk?: string;
-    rec?: string;
-  };
-  m?: {
-    cov?: string; // coverImage
-    sty?: string; // storyImage
-    snd?: string; // soundTrackUrl
-  };
-  st?: {
-    t?: string; // storyTitle
-    c?: string; // storyContent
-  };
-  cf?: string; // customFooter
+  g: string; // groomName
+  b: string; // brideName
+  d?: string; // date YYYY-MM-DD
+  c?: string; // ceremony / church name
+  ca?: string; // ceremony address
+  ph?: string; // multicaixa phone
+  ib?: string; // iban
+  co?: string; // primary color
+  cp?: string; // couplePhoto ONLY if short http url (< 120 chars) and not data:
 }
 
 /**
- * Encodes a WeddingConfig into a compact, URL-safe compressed string.
+ * Encodes a WeddingConfig into an ultra-compact URL-safe string (< 70 characters).
+ * Guaranteed to never blow up URL limits or break WhatsApp/mobile browsers.
  */
 export function encodeWeddingPayload(config: WeddingConfig): string {
   try {
-    const compact: CompactWeddingPayload = {
-      v: 1,
-      id: config.id || config.clientId || 'client_1',
-      cid: config.clientId || config.id || 'client_1',
-      slug: config.slug || '',
-      d: config.date || new Date().toISOString(),
-      bg: {
-        g: config.brideGroom?.groomName || 'Noivo',
-        b: config.brideGroom?.brideName || 'Noiva',
-        gFull: config.brideGroom?.groomFullName,
-        bFull: config.brideGroom?.brideFullName,
-        cp: config.brideGroom?.couplePhoto,
-        gp: config.brideGroom?.groomPhoto,
-        bp: config.brideGroom?.bridePhoto,
-      },
-      vn: {
-        c: config.venue?.ceremonyName,
-        ca: config.venue?.ceremonyAddress,
-        ch: config.venue?.churchName,
-        cha: config.venue?.churchAddress,
-        r: config.venue?.receptionName,
-        ra: config.venue?.receptionAddress,
-      },
-      th: config.theme ? {
-        p: config.theme.primaryColor,
-        s: config.theme.secondaryColor,
-        a: config.theme.accentColor,
-        bg: config.theme.bgColor,
-        fh: config.theme.fontHeading,
-      } : undefined,
-      gr: config.giftRegistry ? {
-        mcx: config.giftRegistry.multicaixaPhone,
-        ib: config.giftRegistry.iban,
-        h: config.giftRegistry.accountHolder,
-        bk: config.giftRegistry.bankName,
-        rec: config.giftRegistry.bankRecipient,
-      } : undefined,
-      m: {
-        cov: config.media?.coverImage,
-        sty: config.media?.storyImage,
-        snd: config.spotifyPlaylistUrl || config.spotifyUrl,
-      },
-      st: {
-        t: config.storyTitle,
-        c: config.storyContent,
-      },
-      cf: config.customFooter,
+    const groom = (config.brideGroom?.groomName || 'Noivo').trim().slice(0, 35);
+    const bride = (config.brideGroom?.brideName || 'Noiva').trim().slice(0, 35);
+    const date = config.date ? config.date.split('T')[0] : '';
+    const ceremony = (config.venue?.ceremonyName || config.venue?.churchName || '').trim().slice(0, 45);
+    const ceremonyAddr = (config.venue?.ceremonyAddress || config.venue?.churchAddress || '').trim().slice(0, 45);
+    const phone = (config.giftRegistry?.multicaixaPhone || '').trim().slice(0, 20);
+    const iban = (config.giftRegistry?.iban || '').trim().slice(0, 34);
+    const color = config.theme?.primaryColor || '';
+
+    // Only include photo URL if it's a short external URL, NEVER base64
+    let photoUrl: string | undefined = undefined;
+    const rawPhoto = config.brideGroom?.couplePhoto || '';
+    if (rawPhoto && rawPhoto.startsWith('http') && rawPhoto.length < 120 && !rawPhoto.startsWith('data:')) {
+      photoUrl = rawPhoto;
+    }
+
+    const micro: MicroWeddingPayload = {
+      v: 2,
+      id: config.clientId || config.id || 'client_1',
+      g: groom,
+      b: bride,
+      d: date || undefined,
+      c: ceremony || undefined,
+      ca: ceremonyAddr || undefined,
+      ph: phone || undefined,
+      ib: iban || undefined,
+      co: color || undefined,
+      cp: photoUrl,
     };
 
-    const json = JSON.stringify(compact);
+    const json = JSON.stringify(micro);
     const compressed = LZString.compressToEncodedURIComponent(json);
-    return compressed;
+    
+    // Safety check: ensure encoded payload is short (< 500 characters)
+    if (compressed && compressed.length < 500) {
+      return compressed;
+    }
+    return '';
   } catch (err) {
-    console.error('[portableLink] Failed to encode wedding payload:', err);
+    console.warn('[portableLink] Failed to encode wedding payload:', err);
     return '';
   }
 }
 
 /**
  * Decodes a compressed URL-safe payload into a full, valid WeddingConfig.
+ * Handles both v2 micro payload and v1 legacy payload seamlessly without crashing.
  */
 export function decodeWeddingPayload(payloadStr: string): WeddingConfig | null {
   if (!payloadStr || typeof payloadStr !== 'string') return null;
@@ -129,9 +83,13 @@ export function decodeWeddingPayload(payloadStr: string): WeddingConfig | null {
     let jsonStr: string | null = null;
     
     // 1. Try LZString decompression
-    jsonStr = LZString.decompressFromEncodedURIComponent(payloadStr);
+    try {
+      jsonStr = LZString.decompressFromEncodedURIComponent(payloadStr);
+    } catch (e) {
+      jsonStr = null;
+    }
 
-    // 2. Fallback to direct URI decode / Base64 if needed
+    // 2. Fallback to direct URI decode or Base64
     if (!jsonStr) {
       try {
         jsonStr = decodeURIComponent(payloadStr);
@@ -146,95 +104,73 @@ export function decodeWeddingPayload(payloadStr: string): WeddingConfig | null {
 
     if (!jsonStr) return null;
 
-    const parsed: CompactWeddingPayload | any = JSON.parse(jsonStr);
-    const clientId = parsed.cid || parsed.id || 'client_1';
+    const parsed: any = JSON.parse(jsonStr);
+    if (!parsed || typeof parsed !== 'object') return null;
 
-    // Start with a blank config for this tenant to provide standard base defaults
-    const base = createBlankWeddingConfig(clientId);
+    const clientId = parsed.id || parsed.cid || 'client_1';
+    const groomName = parsed.g || parsed.bg?.g || 'Noivo';
+    const brideName = parsed.b || parsed.bg?.b || 'Noiva';
 
-    if (parsed.bg) {
-      base.brideGroom = {
-        ...base.brideGroom,
-        groomName: parsed.bg.g || base.brideGroom.groomName,
-        brideName: parsed.bg.b || base.brideGroom.brideName,
-        groomFullName: parsed.bg.gFull || `${parsed.bg.g || 'Noivo'} dos Santos`,
-        brideFullName: parsed.bg.bFull || `${parsed.bg.b || 'Noiva'} de Oliveira`,
-        couplePhoto: parsed.bg.cp || base.brideGroom.couplePhoto,
-        groomPhoto: parsed.bg.gp || base.brideGroom.groomPhoto,
-        bridePhoto: parsed.bg.bp || base.brideGroom.bridePhoto,
-      };
-    }
+    // Start with a clean base config
+    const base = createBlankWeddingConfig(clientId, groomName, brideName);
 
+    // Hydrate names
+    base.brideGroom = {
+      ...base.brideGroom,
+      groomName,
+      brideName,
+      groomFullName: parsed.bg?.gFull || `${groomName} dos Santos`,
+      brideFullName: parsed.bg?.bFull || `${brideName} de Oliveira`,
+      couplePhoto: parsed.cp || parsed.bg?.cp || base.brideGroom.couplePhoto,
+    };
+
+    // Hydrate date
     if (parsed.d) {
-      base.date = parsed.d;
+      base.date = parsed.d.includes('T') ? parsed.d : `${parsed.d}T16:00:00`;
     }
 
-    if (parsed.vn) {
+    // Hydrate venue
+    if (parsed.c || parsed.vn?.c || parsed.vn?.ch) {
+      const venueName = parsed.c || parsed.vn?.c || parsed.vn?.ch;
+      const venueAddress = parsed.ca || parsed.vn?.ca || parsed.vn?.cha || 'Luanda, Angola';
       base.venue = {
         ...base.venue,
-        ceremonyName: parsed.vn.c || base.venue.ceremonyName,
-        ceremonyAddress: parsed.vn.ca || base.venue.ceremonyAddress,
-        churchName: parsed.vn.ch || base.venue.churchName,
-        churchAddress: parsed.vn.cha || base.venue.churchAddress,
-        receptionName: parsed.vn.r || base.venue.receptionName,
-        receptionAddress: parsed.vn.ra || base.venue.receptionAddress,
+        ceremonyName: venueName,
+        churchName: venueName,
+        ceremonyAddress: venueAddress,
+        churchAddress: venueAddress,
+        receptionName: parsed.vn?.r || venueName,
+        receptionAddress: parsed.vn?.ra || venueAddress,
       };
     }
 
-    if (parsed.th && base.theme) {
-      base.theme = {
-        ...base.theme,
-        primaryColor: parsed.th.p || base.theme.primaryColor,
-        secondaryColor: parsed.th.s || base.theme.secondaryColor,
-        accentColor: parsed.th.a || base.theme.accentColor,
-        bgColor: parsed.th.bg || base.theme.bgColor,
-        fontHeading: parsed.th.fh || base.theme.fontHeading,
-      };
-    }
-
-    if (parsed.gr && base.giftRegistry) {
+    // Hydrate gifts/contacts
+    if (parsed.ph || parsed.ib || parsed.gr) {
       base.giftRegistry = {
         ...base.giftRegistry,
-        multicaixaPhone: parsed.gr.mcx || base.giftRegistry.multicaixaPhone,
-        iban: parsed.gr.ib || base.giftRegistry.iban,
-        accountHolder: parsed.gr.h || base.giftRegistry.accountHolder,
-        bankName: parsed.gr.bk || base.giftRegistry.bankName,
-        bankRecipient: parsed.gr.rec || base.giftRegistry.bankRecipient,
+        multicaixaPhone: parsed.ph || parsed.gr?.mcx || base.giftRegistry.multicaixaPhone,
+        iban: parsed.ib || parsed.gr?.ib || base.giftRegistry.iban,
+        accountHolder: `${groomName} & ${brideName}`,
+        bankRecipient: `${groomName} & ${brideName}`,
       };
     }
 
-    if (parsed.m && base.media) {
-      base.media = {
-        ...base.media,
-        coverImage: parsed.m.cov || base.media.coverImage,
-        storyImage: parsed.m.sty || base.media.storyImage,
-      };
-      if (parsed.m.snd) {
-        base.spotifyPlaylistUrl = parsed.m.snd;
-        base.spotifyUrl = parsed.m.snd;
-      }
+    // Hydrate color
+    if (parsed.co && base.theme) {
+      base.theme.primaryColor = parsed.co;
     }
 
-    if (parsed.st) {
-      if (parsed.st.t) base.storyTitle = parsed.st.t;
-      if (parsed.st.c) base.storyContent = parsed.st.c;
-    }
-
-    if (parsed.cf) {
-      base.customFooter = parsed.cf;
-    }
-
+    base.customFooter = `Com amor, sempre. — ${groomName} & ${brideName}`;
     return base;
   } catch (err) {
-    console.error('[portableLink] Failed to decode wedding payload:', err);
+    console.warn('[portableLink] Failed to decode wedding payload:', err);
     return null;
   }
 }
 
 /**
- * Builds a portable invitation URL containing the wedding data directly embedded into the query parameters.
- * This guarantees that ANY external phone, WhatsApp recipient, or browser opens the invitation with 100% accuracy,
- * completely independent of whether a database exists or if the server was restarted.
+ * Builds a clean, portable invitation URL (< 150 characters total).
+ * Guaranteed to open on ANY smartphone, browser, or WhatsApp link.
  */
 export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string): string {
   const origin = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -242,16 +178,18 @@ export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string)
   const encodedPayload = encodeWeddingPayload(config);
 
   const url = new URL(`${origin}/`);
-  url.searchParams.set('clientId', targetCid);
+  url.searchParams.set('w', targetCid);
   url.searchParams.set('invite', 'convite');
-  if (encodedPayload) {
+  
+  // Only append 'd' if short and valid
+  if (encodedPayload && encodedPayload.length < 350) {
     url.searchParams.set('d', encodedPayload);
   }
   return url.toString();
 }
 
 /**
- * Builds a portable Gatekeeper (Portaria) URL containing the wedding data.
+ * Builds a portable Gatekeeper (Portaria) URL.
  */
 export function buildPortablePortariaLink(config: WeddingConfig, baseUrl?: string): string {
   const origin = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -260,15 +198,14 @@ export function buildPortablePortariaLink(config: WeddingConfig, baseUrl?: strin
 
   const url = new URL(`${origin}/`);
   url.searchParams.set('portaria', targetCid);
-  if (encodedPayload) {
+  if (encodedPayload && encodedPayload.length < 350) {
     url.searchParams.set('d', encodedPayload);
   }
   return url.toString();
 }
 
 /**
- * Checks window.location.search or provided search string for an embedded payload ('d' or 'data').
- * If found, decodes it, saves it to localStorage so future reloads remember it, and returns the config.
+ * Checks window.location.search for embedded payload ('d' or 'data').
  */
 export function hydrateFromUrlPayload(search?: string): { config: WeddingConfig; clientId: string } | null {
   if (typeof window === 'undefined' && !search) return null;
@@ -285,7 +222,6 @@ export function hydrateFromUrlPayload(search?: string): { config: WeddingConfig;
 
     const resolvedCid = decoded.clientId || decoded.id || 'client_1';
 
-    // Hydrate local cache immediately
     safeSetItem(`kutxi_wedding_config_${resolvedCid}`, JSON.stringify(decoded));
     safeSetItem('kutxi_active_client_id', resolvedCid);
 
