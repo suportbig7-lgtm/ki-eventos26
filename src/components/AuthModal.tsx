@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'motion/react';
 import { 
   X, Lock, User, Phone, Check, 
@@ -44,9 +44,19 @@ export default function AuthModal({
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [showDemoBox, setShowDemoBox] = useState(false);
   const [showGooglePrompt, setShowGooglePrompt] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('suportbig7@gmail.com');
+  const [googleEmailInput, setGoogleEmailInput] = useState('');
+
+  // Clear any sticky input fields whenever the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setLoginUser('');
+      setLoginPass('');
+      setLoginError('');
+      setGoogleEmailInput('');
+      setShowGooglePrompt(false);
+    }
+  }, [isOpen]);
 
   // Register State
   const [regGroomName, setRegGroomName] = useState('');
@@ -543,7 +553,7 @@ export default function AuthModal({
 
         {/* LOGIN FORM */}
         {activeTab === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} autoComplete="off" className="space-y-4">
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
                 Utilizador / E-mail
@@ -555,6 +565,7 @@ export default function AuthModal({
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   placeholder="Ex: superadmin ou noiva.sofia"
                   value={loginUser}
                   onChange={e => setLoginUser(e.target.value)}
@@ -583,6 +594,7 @@ export default function AuthModal({
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="new-password"
                   placeholder="Palavra-passe"
                   value={loginPass}
                   onChange={e => setLoginPass(e.target.value)}

@@ -1,4 +1,4 @@
-import { WeddingConfig, Guest, ClientWeddingSaaS, SystemAuditLog } from '../types';
+import { WeddingConfig, Guest, ClientWeddingSaaS, SystemAuditLog, UserAccount } from '../types';
 
 export const THEME_PRESETS = [
   {
@@ -338,9 +338,503 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
   ]
 };
 
+export const CONFIG_JOAO_ALICE: WeddingConfig = {
+  id: 'client_joao_alice',
+  slug: 'joao-alice',
+  clientId: 'client_joao_alice',
+  isFirstLogin: false,
+  isNewProfile: false,
+  onboardingCompleted: true,
+  brideGroom: {
+    groomName: 'João',
+    groomFullName: 'João dos Santos',
+    groomBio: 'Apaixonado pela vida e grato por celebrar este momento tão especial ao lado da Alice.',
+    groomParents: 'Sr. Mateus dos Santos & Sra. Helena dos Santos',
+    groomPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800',
+    brideName: 'Alice',
+    brideFullName: 'Alice de Oliveira',
+    brideBio: 'Com o coração transbordando de gratidão e amor por iniciar este lindo capítulo ao lado do João.',
+    brideParents: 'Sr. Domingos de Oliveira & Sra. Maria de Oliveira',
+    bridePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800',
+    couplePhoto: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
+  },
+  date: '2026-11-14T16:00:00',
+  storyTitle: 'Nossa História de Amor',
+  storyContent: 'Nos conhecemos num fim de tarde na Baía de Luanda. O que começou como uma conversa leve logo se transformou numa parceria inseparável de cumplicidade, viagens e sonhos compartilhados. Hoje celebramos nossa união com quem mais amamos.',
+  timeline: [
+    {
+      id: 't1_ja',
+      time: '10:30',
+      title: 'Cerimónia Civil (Registo)',
+      description: 'Assinatura oficial na Conservatória do Registo Civil com os padrinhos e testemunhas.',
+      icon: 'FileText'
+    },
+    {
+      id: 't2_ja',
+      time: '15:30',
+      title: 'Celebração Religiosa',
+      description: 'Bênção nupcial na Sé Catedral de Luanda.',
+      icon: 'Heart'
+    },
+    {
+      id: 't3_ja',
+      time: '18:00',
+      title: 'Copo de Água & Recepção',
+      description: 'Jantar de gala, brinde aos noivos e corte do bolo no Espaço Jardins de Talatona.',
+      icon: 'UtensilsCrossed'
+    },
+    {
+      id: 't4_ja',
+      time: '21:30',
+      title: 'Abertura da Pista & Festa',
+      description: 'Música, celebração e momentos inesquecíveis.',
+      icon: 'Music'
+    }
+  ],
+  venue: {
+    ceremonyName: 'Sé Catedral de Luanda',
+    ceremonyAddress: 'Largo da Sé, Cidade Alta, Luanda',
+    ceremonyTime: '15:30',
+    churchName: 'Sé Catedral de Luanda',
+    churchAddress: 'Largo da Sé, Cidade Alta, Luanda',
+    churchTime: '15:30',
+    civilName: 'Conservatória do Registo Civil',
+    civilAddress: 'Luanda, Angola',
+    civilTime: '10:30',
+    receptionName: 'Espaço de Eventos Jardins de Talatona',
+    receptionAddress: 'Via AL 15, Talatona, Luanda',
+    receptionTime: '18:00',
+    receptionMapsUrl: 'https://maps.google.com'
+  },
+  dressCode: {
+    title: 'Passeio Completo / Traje a Rigor & Tradicional Gala',
+    description: 'Solicitamos aos nossos estimados convidados trajes elegantes para honrar esta celebração.',
+    colorPalette: ['#881337', '#1c1917', '#b48e46']
+  },
+  entourage: {
+    bridesmaids: ['Dra. Carmen dos Santos', 'Sofia Kiala', 'Isabella Mendonça'],
+    groomsmen: ['Eng. Marcos Silva', 'Lucas Vance', 'Dr. Manuel Neto']
+  },
+  faq: [
+    { id: 'f1', question: 'Qual é o horário recomendado de chegada?', answer: 'Recomendamos que todos cheguem à Sé Catedral com 30 minutos de antecedência (às 15:00).' },
+    { id: 'f2', question: 'Há estacionamento no local da recepção?', answer: 'Sim, o Espaço Jardins de Talatona dispõe de estacionamento privado e serviço de valet parking gratuito.' }
+  ],
+  giftRegistry: {
+    pixKey: '',
+    pixQrCode: '',
+    bankName: 'Banco BAI / BFA',
+    bankAgency: '0040',
+    bankAccount: '123456789',
+    bankRecipient: 'João dos Santos & Alice de Oliveira',
+    iban: 'AO06 0040 0000 1234 5678 9012 3',
+    multicaixaPhone: '+244 923 888 777',
+    registryItems: [
+      {
+        id: 'g_ja_1',
+        name: 'Jogo de Jantar Porcelana Vista Alegre (12 Pessoas)',
+        price: 280000,
+        totalCollected: 140000,
+        category: 'mesa',
+        description: 'Conjunto completo de porcelana fina para os jantares de celebração com os amigos e família.',
+        imageUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=400',
+        status: 'disponivel',
+        contributors: []
+      },
+      {
+        id: 'g_ja_2',
+        name: 'Cota Lua de Mel no Mussulo & Benguela',
+        price: 350000,
+        totalCollected: 200000,
+        category: 'viagem',
+        description: 'Experiência inesquecível de descanso e celebração à beira-mar.',
+        imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=400',
+        status: 'disponivel',
+        contributors: []
+      },
+      {
+        id: 'g_ja_3',
+        name: 'Máquina de Café Espresso Automática DeLonghi',
+        price: 195000,
+        totalCollected: 195000,
+        category: 'eletro',
+        description: 'Para nos receberem sempre com um café de excelência.',
+        imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=400',
+        status: 'recebido',
+        contributors: []
+      }
+    ]
+  },
+  media: {
+    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600',
+    storyImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
+    photos: [
+      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800'
+    ]
+  },
+  accomTrans: {
+    accommodationNotes: 'Tarifas corporativas exclusivas no Hotel de Convenções de Talatona.',
+    transportNotes: 'Serviço de valet parking no local e transfer exclusivo para convidados.',
+    recommendedHotels: [
+      { name: 'Hotel Talatona HCTA', stars: 5, phone: '+244 226 424 000', link: 'https://maps.google.com' }
+    ]
+  },
+  spotifyPlaylistUrl: 'https://open.spotify.com/embed/playlist/37i9dQZF1DX50mN7fI63vX',
+  theme: THEME_PRESETS[0],
+  customFooter: 'Com amor, sempre. — João & Alice',
+  contactInfo: {
+    phone: '+244 923 888 777',
+    email: 'jhonkutxi@gmail.com'
+  },
+  isActive: true,
+  todoList: [
+    { id: 'td1', label: 'Cerimónia Civil (Registo) na Conservatória', completed: true, urgency: 'alta' },
+    { id: 'td2', label: 'Celebração Religiosa na Sé Catedral', completed: true, urgency: 'alta' },
+    { id: 'td3', label: 'Copo de Água & Salão Talatona', completed: true, urgency: 'alta' }
+  ],
+  muralComments: [
+    {
+      id: 'm1_ja',
+      author: 'Madrinha Sofia',
+      message: 'João e Alice, meus grandes amigos! Que alegria ver essa união tão abençoada. Toda a felicidade do mundo!',
+      date: '14 de Outubro de 2026',
+      giftName: 'Máquina de Café Espresso',
+      amountContributed: 95000,
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
+      status: 'approved'
+    }
+  ]
+};
+
+export const CONFIG_PEDRO_PUREZA: WeddingConfig = {
+  id: 'client_pedro_pureza',
+  slug: 'pedro-pureza',
+  clientId: 'client_pedro_pureza',
+  isFirstLogin: false,
+  isNewProfile: false,
+  onboardingCompleted: true,
+  brideGroom: {
+    groomName: 'Pedro',
+    groomFullName: 'Pedro Miguel',
+    groomBio: 'Um coração apaixonado e grato por construir uma linda família ao lado da Pureza.',
+    groomParents: 'Sr. António Miguel & Sra. Joana Miguel',
+    groomPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800',
+    brideName: 'Pureza',
+    brideFullName: 'Pureza Kiala',
+    brideBio: 'Vivendo a realização de um sonho de amor, respeito e cumplicidade com o Pedro.',
+    brideParents: 'Sr. Bernardo Kiala & Sra. Rosa Kiala',
+    bridePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800',
+    couplePhoto: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200',
+  },
+  date: '2027-04-22T15:00:00',
+  storyTitle: 'Nossa História de Amor',
+  storyContent: 'Uma linda amizade que floresceu com os anos e se tornou um amor inabalável. Convidamos você para celebrar conosco este grande dia!',
+  timeline: [
+    { id: 't1_pp', time: '11:00', title: 'Registo Civil', description: 'Assinatura civil oficial.', icon: 'FileText' },
+    { id: 't2_pp', time: '15:00', title: 'Bênção Matrimonial', description: 'Cerimônia na Paróquia Sagrada Família.', icon: 'Heart' },
+    { id: 't3_pp', time: '17:30', title: 'Recepção dos Convidados', description: 'Brinde e jantar no Salão Luanda Miramar.', icon: 'UtensilsCrossed' }
+  ],
+  venue: {
+    ceremonyName: 'Paróquia Sagrada Família',
+    ceremonyAddress: 'Av. Deolinda Rodrigues, Luanda',
+    ceremonyTime: '15:00',
+    churchName: 'Paróquia Sagrada Família',
+    churchAddress: 'Av. Deolinda Rodrigues, Luanda',
+    churchTime: '15:00',
+    civilName: 'Conservatória do Registo Civil',
+    civilAddress: 'Luanda, Angola',
+    civilTime: '11:00',
+    receptionName: 'Salão Luanda Miramar',
+    receptionAddress: 'Miramar, Luanda',
+    receptionTime: '17:30',
+    receptionMapsUrl: 'https://maps.google.com'
+  },
+  dressCode: {
+    title: 'Formal / Traje de Festa',
+    description: 'Traje formal para todos os convidados.',
+    colorPalette: ['#0f172a', '#78350f', '#fb7185']
+  },
+  entourage: {
+    bridesmaids: ['Teresa Kiala', 'Ana Miguel'],
+    groomsmen: ['Carlos Miguel', 'José Silva']
+  },
+  faq: [],
+  giftRegistry: {
+    pixKey: '',
+    pixQrCode: '',
+    bankName: 'Banco BFA / BAI',
+    bankAgency: '0006',
+    bankAccount: '987654321',
+    bankRecipient: 'Pedro Miguel & Pureza Kiala',
+    iban: 'AO06 0006 0000 9876 5432 1012 4',
+    multicaixaPhone: '+244 923 111 222',
+    registryItems: [
+      {
+        id: 'g_pp_1',
+        name: 'Conjunto de Eletrodomésticos Cozinha',
+        price: 220000,
+        totalCollected: 50000,
+        category: 'eletro',
+        description: 'Eletroportáteis para o lar.',
+        imageUrl: 'https://images.unsplash.com/photo-1584990347449-a29283f3e1b1?auto=format&fit=crop&q=80&w=400',
+        status: 'disponivel',
+        contributors: []
+      }
+    ]
+  },
+  media: {
+    coverImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600',
+    storyImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
+    photos: [
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'
+    ]
+  },
+  accomTrans: {
+    accommodationNotes: 'Hotéis próximos em Miramar e Ingombota.',
+    transportNotes: 'Estacionamento livre no local.',
+    recommendedHotels: []
+  },
+  theme: THEME_PRESETS[1],
+  customFooter: 'Com amor, sempre. — Pedro & Pureza',
+  contactInfo: {
+    phone: '+244 923 111 222',
+    email: 'suportbig7@gmail.com'
+  },
+  isActive: true,
+  todoList: [],
+  muralComments: []
+};
+
+export const CONFIG_OSVALDO_NICIDIA: WeddingConfig = {
+  id: 'client_osvaldo_nicidia',
+  slug: 'osvaldo-nicidia',
+  clientId: 'client_osvaldo_nicidia',
+  isFirstLogin: false,
+  isNewProfile: false,
+  onboardingCompleted: true,
+  brideGroom: {
+    groomName: 'Osvaldo',
+    groomFullName: 'Osvaldo Vagabo',
+    groomBio: 'O homem mais feliz por ter encontrado na Nicidia a sua eterna companheira e parceira de vida.',
+    groomParents: 'Sr. Gaspar Vagabo & Sra. Maria Vagabo',
+    groomPhoto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=800',
+    brideName: 'Nicidia',
+    brideFullName: 'Nicidia Manuel',
+    brideBio: 'Com imenso amor no coração e a bênção de Deus para o nosso matrimônio.',
+    brideParents: 'Sr. Pedro Manuel & Sra. Esperança Manuel',
+    bridePhoto: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800',
+    couplePhoto: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200',
+  },
+  date: '2027-07-25T16:00:00',
+  storyTitle: 'Nossa História de Amor',
+  storyContent: 'O destino uniu nossos caminhos sob a luz de Luanda. Hoje damos o passo mais importante das nossas vidas rumo à eternidade.',
+  timeline: [
+    { id: 't1_on', time: '10:00', title: 'Registo Civil', description: 'Celebração civil na Conservatória.', icon: 'FileText' },
+    { id: 't2_on', time: '16:00', title: 'Celebração Religiosa', description: 'Bênção das alianças na Igreja da Sagrada Família.', icon: 'Heart' },
+    { id: 't3_on', time: '18:30', title: 'Banquete & Recepção', description: 'Jantar de gala no Centro de Convenções de Talatona.', icon: 'UtensilsCrossed' }
+  ],
+  venue: {
+    ceremonyName: 'Igreja da Sagrada Família',
+    ceremonyAddress: 'Luanda, Angola',
+    ceremonyTime: '16:00',
+    churchName: 'Igreja da Sagrada Família',
+    churchAddress: 'Luanda, Angola',
+    churchTime: '16:00',
+    civilName: 'Conservatória do Registo Civil',
+    civilAddress: 'Luanda, Angola',
+    civilTime: '10:00',
+    receptionName: 'Centro de Convenções de Talatona',
+    receptionAddress: 'Talatona, Luanda',
+    receptionTime: '18:30',
+    receptionMapsUrl: 'https://maps.google.com'
+  },
+  dressCode: {
+    title: 'Gala & Black Tie',
+    description: 'Vestimenta de gala ou traje tradicional solene.',
+    colorPalette: ['#14532d', '#78350f', '#fafaf9']
+  },
+  entourage: {
+    bridesmaids: ['Beatriz Manuel', 'Rosa Vagabo'],
+    groomsmen: ['Filipe Vagabo', 'Mateus Manuel']
+  },
+  faq: [],
+  giftRegistry: {
+    pixKey: '',
+    pixQrCode: '',
+    bankName: 'Banco BAI / Sol',
+    bankAgency: '0055',
+    bankAccount: '456789012',
+    bankRecipient: 'Osvaldo Vagabo & Nicidia Manuel',
+    iban: 'AO06 0055 0000 4567 8901 2345 6',
+    multicaixaPhone: '+244 923 555 666',
+    registryItems: [
+      {
+        id: 'g_on_1',
+        name: 'Conjunto Faqueiro Dourado de Luxo (72 Peças)',
+        price: 240000,
+        totalCollected: 120000,
+        category: 'mesa',
+        description: 'Faqueiro de gala em aço inox com acabamento dourado.',
+        imageUrl: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=400',
+        status: 'disponivel',
+        contributors: []
+      }
+    ]
+  },
+  media: {
+    coverImage: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1600',
+    storyImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
+    photos: [
+      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'
+    ]
+  },
+  accomTrans: {
+    accommodationNotes: 'Hospedagem sugerida em Talatona.',
+    transportNotes: 'Serviço de valet parking no local.',
+    recommendedHotels: []
+  },
+  theme: THEME_PRESETS[3],
+  customFooter: 'Com amor, sempre. — Osvaldo & Nicidia',
+  contactInfo: {
+    phone: '+244 923 555 666',
+    email: 'osvaldovagabo@gmail.com'
+  },
+  isActive: true,
+  todoList: [],
+  muralComments: []
+};
+
 export const INITIAL_GUESTS: Guest[] = [];
 
-export const INITIAL_CLIENTS: ClientWeddingSaaS[] = [];
+export const INITIAL_CLIENTS: ClientWeddingSaaS[] = [
+  {
+    id: 'client_osvaldo_nicidia',
+    clientName: 'OSvlado & Nicidia',
+    clientEmail: 'osvaldovagabo@gmail.com',
+    weddingDate: '2027-07-25',
+    plan: 'Luxury',
+    status: 'Active',
+    revenue: 110000,
+    config: CONFIG_OSVALDO_NICIDIA,
+    guestCount: 120,
+    rsvpsReceived: 85,
+    createdAt: '2026-10-20',
+    features: {
+      maxGuests: 9999,
+      allowWhatsAppAutomation: true,
+      allowCollectiveAlbum: true,
+      allowGatekeeperPortal: true
+    }
+  },
+  {
+    id: 'client_pedro_pureza',
+    clientName: 'Pedro & Pureza',
+    clientEmail: 'suportbig7@gmail.com',
+    weddingDate: '2027-04-22',
+    plan: 'Basic',
+    status: 'Active',
+    revenue: 35000,
+    config: CONFIG_PEDRO_PUREZA,
+    guestCount: 65,
+    rsvpsReceived: 42,
+    createdAt: '2026-10-21',
+    features: {
+      maxGuests: 150,
+      allowWhatsAppAutomation: false,
+      allowCollectiveAlbum: false,
+      allowGatekeeperPortal: false
+    }
+  },
+  {
+    id: 'client_joao_alice',
+    clientName: 'João & Alice',
+    clientEmail: 'jhonkutxi@gmail.com',
+    weddingDate: '2026-11-14',
+    plan: 'Luxury',
+    status: 'Active',
+    revenue: 110000,
+    config: CONFIG_JOAO_ALICE,
+    guestCount: 180,
+    rsvpsReceived: 140,
+    createdAt: '2026-10-22',
+    features: {
+      maxGuests: 9999,
+      allowWhatsAppAutomation: true,
+      allowCollectiveAlbum: true,
+      allowGatekeeperPortal: true
+    }
+  }
+];
+
+export const INITIAL_USER_ACCOUNTS: UserAccount[] = [
+  {
+    username: 'superadmin',
+    pass: 'admin123',
+    clientId: 'system',
+    clientName: 'Super Administrador',
+    role: 'superadmin'
+  },
+  {
+    username: 'ki-eventos',
+    pass: 'kieventos123',
+    clientId: 'system',
+    clientName: 'Super Administrador (Ki-Eventos)',
+    role: 'superadmin'
+  },
+  {
+    username: 'noiva.novo',
+    pass: 'vows.496',
+    clientId: 'client_osvaldo_nicidia',
+    clientName: 'OSvlado & Nicidia',
+    role: 'couple',
+    email: 'osvaldovagabo@gmail.com'
+  },
+  {
+    username: 'noivo.osvaldo',
+    pass: 'vows.496',
+    clientId: 'client_osvaldo_nicidia',
+    clientName: 'OSvlado & Nicidia',
+    role: 'couple',
+    email: 'osvaldovagabo@gmail.com'
+  },
+  {
+    username: 'google_suportbig7',
+    pass: 'google_session',
+    clientId: 'client_pedro_pureza',
+    clientName: 'Pedro & Pureza',
+    role: 'couple',
+    email: 'suportbig7@gmail.com',
+    googleId: 'google_suportbig7'
+  },
+  {
+    username: 'noivo.pedro',
+    pass: 'vows.2027',
+    clientId: 'client_pedro_pureza',
+    clientName: 'Pedro & Pureza',
+    role: 'couple',
+    email: 'suportbig7@gmail.com'
+  },
+  {
+    username: 'noivo.joão',
+    pass: 'vows.2026',
+    clientId: 'client_joao_alice',
+    clientName: 'João & Alice',
+    role: 'couple',
+    email: 'jhonkutxi@gmail.com'
+  },
+  {
+    username: 'noiva.alice',
+    pass: 'vows.2026',
+    clientId: 'client_joao_alice',
+    clientName: 'João & Alice',
+    role: 'couple',
+    email: 'jhonkutxi@gmail.com'
+  }
+];
 
 export const INITIAL_AUDIT_LOGS: SystemAuditLog[] = [
   {

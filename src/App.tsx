@@ -13,7 +13,9 @@ import {
 import { Guest, GuestStatus, WeddingConfig, ClientWeddingSaaS, SystemAuditLog, UserAccount } from './types';
 import { 
   INITIAL_WEDDING_CONFIG, INITIAL_GUESTS, 
-  INITIAL_CLIENTS, INITIAL_AUDIT_LOGS, createBlankWeddingConfig,
+  INITIAL_CLIENTS, INITIAL_USER_ACCOUNTS,
+  CONFIG_JOAO_ALICE, CONFIG_PEDRO_PUREZA, CONFIG_OSVALDO_NICIDIA,
+  INITIAL_AUDIT_LOGS, createBlankWeddingConfig,
   DEFAULT_PLANS, SaaSPlanConfig
 } from './data/defaultConfig';
 
@@ -198,25 +200,22 @@ export default function App() {
     return null;
   });
 
-  // Default User Accounts with requested superadmin (user: superadmin / pass: admin123)
+  // User Accounts (guaranteed union with the 3 official wedding accounts)
   const [userAccounts, setUserAccounts] = useState<UserAccount[]>(() => {
     try {
       const saved = localStorage.getItem('kutxi_user_accounts');
-      if (saved) return JSON.parse(saved);
+      const list: UserAccount[] = saved ? JSON.parse(saved) : [];
+      const accMap = new Map<string, UserAccount>();
+      INITIAL_USER_ACCOUNTS.forEach(a => accMap.set(a.username.toLowerCase(), a));
+      list.forEach(a => accMap.set(a.username.toLowerCase(), a));
+      const merged = Array.from(accMap.values());
+      return merged;
     } catch (e) {
-      console.warn("Failed to parse user accounts:", e);
+      return INITIAL_USER_ACCOUNTS;
     }
-    return [
-      { 
-        username: 'superadmin', 
-        pass: 'admin123', 
-        clientId: 'system', 
-        clientName: 'Super Administrador', 
-        role: 'superadmin' 
-      }
-    ];
   });
 
+  const [invalidInviteNotice, setInvalidInviteNotice] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSupabaseModal, setShowSupabaseModal] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
@@ -267,7 +266,7 @@ export default function App() {
     }, 4000);
   };
 
-  // Wedding Config (Starts virgin and clean for new clients, completely isolated)
+  // Wedding Config (Isolated per wedding tenant)
   const [weddingConfig, setWeddingConfig] = useState<WeddingConfig>(() => {
     try {
       const p = new URLSearchParams(window.location.search);
@@ -276,32 +275,48 @@ export default function App() {
       if (payload) {
         const decoded = decodeWeddingPayload(payload);
         if (decoded) {
-          const cid = decoded.clientId || decoded.id || 'client_1';
+          const cid = decoded.clientId || decoded.id || 'client_joao_alice';
           safeSetItem(`kutxi_wedding_config_${cid}`, JSON.stringify(decoded));
           safeSetItem('kutxi_active_client_id', cid);
           return decoded;
         }
       }
 
-      // Priority 2: Direct client ID lookup
-      const cid = p.get('clientId') || p.get('w') || p.get('casamento') || p.get('c') || p.get('portaria') || 
-                   localStorage.getItem('kutxi_active_client_id') || 'client_1';
-      const directSaved = localStorage.getItem(`kutxi_wedding_config_${cid}`);
+      // Priority 2: Direct client lookup via slug, invite, w or clientId
+      const inviteParam = p.get('invite') || p.get('convite');
+      const shortW = p.get('w') || p.get('casamento') || p.get('c');
+      const cidParam = p.get('clientId') || p.get('portaria');
+      const targetSlugOrId = (inviteParam && inviteParam !== 'convite' && inviteParam !== 'true' ? inviteParam : '') ||
+                             (shortW && shortW !== 'true' ? shortW : '') ||
+                             (cidParam && cidParam !== 'system' && cidParam !== 'true' ? cidParam : '') ||
+                             localStorage.getItem('kutxi_active_client_id') || 'client_joao_alice';
+
+      // Check INITIAL_CLIENTS
+      const predefined = INITIAL_CLIENTS.find(c => 
+        (c.config?.slug && c.config.slug.toLowerCase() === targetSlugOrId.toLowerCase()) ||
+        c.id.toLowerCase() === targetSlugOrId.toLowerCase() ||
+        (c.config?.id && c.config.id.toLowerCase() === targetSlugOrId.toLowerCase())
+      );
+      if (predefined?.config) return predefined.config;
+
+      const directSaved = localStorage.getItem(`kutxi_wedding_config_${targetSlugOrId}`);
       if (directSaved) return JSON.parse(directSaved);
+
       const savedClients = localStorage.getItem('kutxi_clients');
       if (savedClients) {
         const list = JSON.parse(savedClients);
-        const match = list.find((c: any) => c.id === cid || c.config?.id === cid || c.config?.clientId === cid);
+        const match = list.find((c: any) => 
+          c.id === targetSlugOrId || 
+          c.config?.id === targetSlugOrId || 
+          c.config?.clientId === targetSlugOrId ||
+          c.config?.slug === targetSlugOrId
+        );
         if (match?.config) return match.config;
       }
-      if (cid === 'client_1') {
-        const savedGlobal = localStorage.getItem('kutxi_wedding_config');
-        if (savedGlobal) return JSON.parse(savedGlobal);
-        return INITIAL_WEDDING_CONFIG;
-      }
-      return createBlankWeddingConfig(cid);
+
+      return CONFIG_JOAO_ALICE;
     } catch (e) {}
-    return createBlankWeddingConfig('client_1');
+    return CONFIG_JOAO_ALICE;
   });
 
   // Guest list (Starts clean from virgin state per tenant)
@@ -322,11 +337,26 @@ export default function App() {
     return [];
   });
 
-  // Clients list (Virgin clean state)
+  // Clients list (Union merge with official profiles so all deployments share the 3 profiles)
   const [clients, setClients] = useState<ClientWeddingSaaS[]>(() => {
     try {
       const saved = localStorage.getItem('kutxi_clients');
-      let baseList = saved ? sanitizeClientsList(JSON.parse(saved)) : INITIAL_CLIENTS;
+      const clientMap = new Map<string, ClientWeddingSaaS>();
+      INITIAL_CLIENTS.forEach(c => clientMap.set(c.id, c));
+
+      if (saved) {
+        try {
+          const list: ClientWeddingSaaS[] = sanitizeClientsList(JSON.parse(saved));
+          list.forEach(c => {
+            const existing = clientMap.get(c.id);
+            if (existing) {
+              clientMap.set(c.id, { ...existing, ...c, config: c.config || existing.config });
+            } else {
+              clientMap.set(c.id, c);
+            }
+          });
+        } catch (err) {}
+      }
 
       // If URL contains embedded payload, ensure the decoded wedding is seamlessly registered in clients
       if (typeof window !== 'undefined') {
@@ -335,32 +365,30 @@ export default function App() {
         if (payload) {
           const decoded = decodeWeddingPayload(payload);
           if (decoded) {
-            const cid = decoded.clientId || decoded.id || 'client_1';
-            const exists = baseList.some(c => c.id === cid || c.config?.id === cid);
-            if (!exists) {
-              const groom = decoded.brideGroom?.groomName || 'Noivo';
-              const bride = decoded.brideGroom?.brideName || 'Noiva';
-              const newClient: ClientWeddingSaaS = {
-                id: cid,
-                clientName: `${groom} & ${bride}`,
-                clientEmail: decoded.contactInfo?.email || 'contato@kutxi.ao',
-                weddingDate: decoded.date ? decoded.date.split('T')[0] : '2026-10-30',
-                plan: 'Luxury',
-                status: 'Active',
-                guestCount: 0,
-                rsvpsReceived: 0,
-                revenue: 225000,
-                createdAt: new Date().toISOString(),
-                config: decoded
-              };
-              baseList = [newClient, ...baseList];
-              safeSetItem('kutxi_clients', JSON.stringify(baseList));
-            }
+            const cid = decoded.clientId || decoded.id || 'client_joao_alice';
+            const groom = decoded.brideGroom?.groomName || 'Noivo';
+            const bride = decoded.brideGroom?.brideName || 'Noiva';
+            const newClient: ClientWeddingSaaS = {
+              id: cid,
+              clientName: `${groom} & ${bride}`,
+              clientEmail: decoded.contactInfo?.email || 'contato@kutxi.ao',
+              weddingDate: decoded.date ? decoded.date.split('T')[0] : '2026-11-14',
+              plan: 'Luxury',
+              status: 'Active',
+              guestCount: 0,
+              rsvpsReceived: 0,
+              revenue: 110000,
+              createdAt: new Date().toISOString(),
+              config: decoded
+            };
+            clientMap.set(cid, newClient);
           }
         }
       }
 
-      return baseList;
+      const merged = Array.from(clientMap.values());
+      safeSetItem('kutxi_clients', JSON.stringify(merged));
+      return merged;
     } catch (e) {
       return INITIAL_CLIENTS;
     }
@@ -669,116 +697,140 @@ export default function App() {
     safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(clients)));
   }, [clients]);
 
-  // Synchronize browser URL bar dynamically so copying URL or sharing always includes client ID and payload
+  // Synchronize browser URL bar dynamically using clean friendly slugs via history.replaceState
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const url = new URL(window.location.href);
-      if (persona === 'public-invite' && activeClientId) {
-        let changed = false;
-        if (url.searchParams.get('clientId') !== activeClientId && url.searchParams.get('w') !== activeClientId) {
-          url.searchParams.set('clientId', activeClientId);
-          url.searchParams.set('invite', 'convite');
-          changed = true;
+      if (persona === 'public-invite') {
+        let slug = weddingConfig.slug || (weddingConfig.clientId && weddingConfig.clientId !== 'system' ? weddingConfig.clientId.replace(/^client_/, '') : (activeClientId && activeClientId !== 'system' ? activeClientId.replace(/^client_/, '') : 'joao-alice'));
+        if (slug === 'system') slug = 'joao-alice';
+        const cleanUrl = new URL(window.location.origin);
+        cleanUrl.searchParams.set('invite', slug);
+        if (urlGuestToken && urlGuestToken !== 'convite') {
+          cleanUrl.searchParams.set('token', urlGuestToken);
         }
-        // If 'd' param is missing and we have customized couple data, embed it
-        if (!url.searchParams.get('d') && weddingConfig.brideGroom?.groomName && weddingConfig.brideGroom.groomName !== 'Noivo') {
-          const encoded = encodeWeddingPayload(weddingConfig);
-          if (encoded) {
-            url.searchParams.set('d', encoded);
-            changed = true;
-          }
-        }
-        if (changed) {
-          window.history.replaceState({}, '', url.toString());
-        }
+        // Replace noisy browser URL with the short, friendly slug URL
+        window.history.replaceState({}, '', cleanUrl.toString());
       }
     } catch (e) {}
-  }, [persona, activeClientId, weddingConfig]);
+  }, [persona, activeClientId, weddingConfig.slug, urlGuestToken]);
 
   useEffect(() => {
     safeSetItem('kutxi_audit_logs', JSON.stringify(auditLogs.slice(0, 30)));
   }, [auditLogs]);
 
-  // URL routing parse logic on mount
+  // URL routing parse and client validation logic on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const portaria = params.get('portaria');
-    const invite = params.get('invite') || params.get('convite') || params.get('token');
+    const inviteParam = params.get('invite') || params.get('convite');
+    const token = params.get('token');
     const planos = params.get('planos');
     const shortW = params.get('w') || params.get('casamento') || params.get('c');
-    let urlClientId = params.get('clientId') || shortW;
+    const dPayload = params.get('d') || params.get('data');
+    const urlClientId = params.get('clientId');
 
-    // Check self-contained portable URL payload
-    const payload = params.get('d') || params.get('data');
-    if (payload) {
-      const decoded = decodeWeddingPayload(payload);
-      if (decoded) {
-        const decodedCid = decoded.clientId || decoded.id || 'client_1';
-        urlClientId = decodedCid;
-        setWeddingConfig(decoded);
-        safeSetItem(`kutxi_wedding_config_${decodedCid}`, JSON.stringify(decoded));
-        safeSetItem('kutxi_active_client_id', decodedCid);
-        setActiveClientId(decodedCid);
-
-        // Also push this decoded config to server database so the server becomes aware of it
-        fetch(`/api/wedding-config/${decodedCid}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(decoded)
-        }).catch(() => {});
-      }
-    }
-
-    if (portaria && portaria !== 'true') {
-      urlClientId = portaria;
-    }
-
-    if (urlClientId) {
-      safeSetItem('kutxi_active_client_id', urlClientId);
-      setActiveClientId(urlClientId);
-
-      // Fetch official wedding config for this tenant immediately from server!
-      fetch(`/api/wedding-config/${urlClientId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.config) {
-            setWeddingConfig(data.config);
-            safeSetItem(`kutxi_wedding_config_${urlClientId}`, JSON.stringify(data.config));
-          }
-        })
-        .catch(() => {});
-
-      // Fetch guests for this tenant from server
-      fetch(`/api/guests/${urlClientId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && Array.isArray(data.guests)) {
-            setGuests(data.guests);
-            safeSetItem(`kutxi_guests_${urlClientId}`, JSON.stringify(data.guests));
-          }
-        })
-        .catch(() => {});
-    }
-
-    if (portaria) {
-      setPersona('gatekeeper-portal');
-      setIsPortariaLocked(true);
-      addAuditLog('Portaria', 'Acesso via Link Direto', `Portaria acessada para o casamento ${urlClientId || 'padrão'}.`, 'auth');
-    } else if (invite || shortW) {
-      setPersona('public-invite');
-      setIsInviteLocked(true);
-      const cleanToken = invite === 'convite' || invite === 'true' || !invite ? '' : invite;
-      setUrlGuestToken(cleanToken);
-      addAuditLog('Convidado', 'Acesso ao Convite', `Convite acessado via token: ${cleanToken || urlClientId || 'geral'}`, 'rsvp');
-    } else if (planos) {
+    if (planos) {
       setPersona('saas-landing');
       setIsInviteLocked(false);
       setTimeout(() => {
         document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 150);
+      return;
     }
-  }, []);
+
+    if (portaria) {
+      setPersona('gatekeeper-portal');
+      setIsPortariaLocked(true);
+      const targetCid = portaria !== 'true' && portaria !== 'system' ? portaria : (activeClientId !== 'system' ? activeClientId : 'client_joao_alice');
+      const cleanSlug = targetCid.replace(/^client_/, '');
+      window.history.replaceState({}, '', `${window.location.origin}/?portaria=${cleanSlug}`);
+      return;
+    }
+
+    // Checking if an invitation link was accessed
+    if (inviteParam || shortW || dPayload || token || (urlClientId && urlClientId !== 'system')) {
+      let resolvedConfig: WeddingConfig | null = null;
+      let resolvedCid = '';
+
+      // 1. Try decoding embedded portable payload if present
+      if (dPayload) {
+        const decoded = decodeWeddingPayload(dPayload);
+        if (decoded) {
+          resolvedConfig = decoded;
+          resolvedCid = decoded.clientId || decoded.id || 'client_joao_alice';
+        }
+      }
+
+      // 2. Validate token or slug against registered clients list
+      const lookupToken = (inviteParam && inviteParam !== 'convite' && inviteParam !== 'true' ? inviteParam : '') ||
+                          (shortW && shortW !== 'true' && shortW !== 'system' ? shortW : '') ||
+                          (urlClientId && urlClientId !== 'system' ? urlClientId : '') ||
+                          (token && token !== 'convite' ? token : '') ||
+                          (resolvedConfig ? (resolvedConfig.slug || resolvedConfig.clientId) : '');
+
+      let matchedClient: ClientWeddingSaaS | undefined = undefined;
+      if (lookupToken) {
+        matchedClient = clients.find(c => 
+          (c.config?.slug && c.config.slug.toLowerCase() === lookupToken.toLowerCase()) ||
+          c.id.toLowerCase() === lookupToken.toLowerCase() ||
+          (c.config?.id && c.config.id.toLowerCase() === lookupToken.toLowerCase()) ||
+          (lookupToken.includes('joao') && c.id === 'client_joao_alice') ||
+          (lookupToken.includes('pedro') && c.id === 'client_pedro_pureza') ||
+          (lookupToken.includes('osvaldo') && c.id === 'client_osvaldo_nicidia')
+        ) || INITIAL_CLIENTS.find(c =>
+          (c.config?.slug && c.config.slug.toLowerCase() === lookupToken.toLowerCase()) ||
+          c.id.toLowerCase() === lookupToken.toLowerCase() ||
+          (c.config?.id && c.config.id.toLowerCase() === lookupToken.toLowerCase())
+        );
+      }
+
+      // If matched in clients, prefer official rich config
+      if (matchedClient) {
+        resolvedConfig = matchedClient.config || resolvedConfig;
+        resolvedCid = matchedClient.id;
+      }
+
+      // 3. Validation Check: Only load invitation if token/hash is valid or resolved
+      if (resolvedConfig || matchedClient || inviteParam === 'convite' || (!lookupToken && !dPayload)) {
+        const finalConfig = resolvedConfig || matchedClient?.config || weddingConfig;
+        const finalCid = resolvedCid || matchedClient?.id || 'client_joao_alice';
+        const finalSlug = finalConfig.slug || (finalCid !== 'system' ? finalCid.replace(/^client_/, '') : 'joao-alice');
+
+        setWeddingConfig(finalConfig);
+        setActiveClientId(finalCid);
+        safeSetItem(`kutxi_wedding_config_${finalCid}`, JSON.stringify(finalConfig));
+        safeSetItem('kutxi_active_client_id', finalCid);
+        setPersona('public-invite');
+        setIsInviteLocked(true);
+
+        const cleanToken = token && token !== 'convite' ? token : '';
+        setUrlGuestToken(cleanToken);
+
+        // Instant history.replaceState to maintain clean, short, friendly WhatsApp URL
+        const cleanUrl = `${window.location.origin}/?invite=${finalSlug}${cleanToken ? `&token=${cleanToken}` : ''}`;
+        window.history.replaceState({}, '', cleanUrl);
+
+        addAuditLog('Convidado', 'Convite Carregado', `Convite oficial "${finalConfig.brideGroom?.groomName} & ${finalConfig.brideGroom?.brideName}" carregado via slug: ${finalSlug}`, 'rsvp');
+
+        // Sync with server in background
+        fetch(`/api/wedding-config/${finalCid}`).catch(() => {});
+        fetch(`/api/guests/${finalCid}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && Array.isArray(data.guests)) {
+              setGuests(data.guests);
+            }
+          }).catch(() => {});
+      } else {
+        // Token is NOT valid: show friendly notice and redirect to landing
+        setInvalidInviteNotice(`O convite "${lookupToken}" não foi localizado ou o link é inválido.`);
+        setPersona('saas-landing');
+        setIsInviteLocked(false);
+        window.history.replaceState({}, '', window.location.origin);
+      }
+    }
+  }, [clients]);
 
   // --- LOG WRITER UTILITY ---
   const addAuditLog = (actor: string, action: string, details: string, type: 'system' | 'auth' | 'rsvp' | 'messaging' | 'security' = 'system') => {
@@ -1355,6 +1407,23 @@ export default function App() {
 
       {/* MAIN CONTENT AREA */}
       <main id="main-content" className="flex-1">
+        {invalidInviteNotice && (
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800/60 px-4 py-3 text-sm text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2 max-w-4xl mx-auto flex-1">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>{invalidInviteNotice} Você foi redirecionado para a página inicial da plataforma.</span>
+            </div>
+            <button
+              onClick={() => setInvalidInviteNotice(null)}
+              className="p-1 hover:bg-amber-100 dark:hover:bg-amber-900/60 rounded-md text-amber-700 dark:text-amber-300 transition-colors"
+              title="Fechar aviso"
+              aria-label="Fechar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {/* SAAS LANDING VIEW */}
           {persona === 'saas-landing' && (

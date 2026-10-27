@@ -1,7 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { UserAccount, ClientWeddingSaaS, WeddingConfig, Guest, SystemAuditLog, ActivationRequest } from '../src/types';
-import { INITIAL_WEDDING_CONFIG, INITIAL_GUESTS, INITIAL_CLIENTS, INITIAL_AUDIT_LOGS, DEFAULT_PLANS, createBlankWeddingConfig, SaaSPlanConfig } from '../src/data/defaultConfig';
+import { 
+  INITIAL_WEDDING_CONFIG, INITIAL_GUESTS, INITIAL_CLIENTS, INITIAL_USER_ACCOUNTS, 
+  CONFIG_JOAO_ALICE, CONFIG_PEDRO_PUREZA, CONFIG_OSVALDO_NICIDIA,
+  INITIAL_AUDIT_LOGS, DEFAULT_PLANS, createBlankWeddingConfig, SaaSPlanConfig 
+} from '../src/data/defaultConfig';
 
 export interface ServerDatabase {
   userAccounts: UserAccount[];
@@ -38,83 +42,21 @@ let dbFilePath = '';
 function buildInitialDatabase(): ServerDatabase {
   const configs: Record<string, WeddingConfig> = {
     client_1: INITIAL_WEDDING_CONFIG,
-    client_novo: {
-      ...createBlankWeddingConfig('client_novo', 'Novo', 'Noiva'),
-      date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
-      brideGroom: {
-        ...INITIAL_WEDDING_CONFIG.brideGroom,
-        groomName: 'Novo',
-        groomFullName: 'Novo',
-        brideName: 'Noiva',
-        brideFullName: 'Noiva',
-      },
-      customFooter: 'Com amor, — Novo & Noiva'
-    }
+    client_osvaldo_nicidia: CONFIG_OSVALDO_NICIDIA,
+    client_pedro_pureza: CONFIG_PEDRO_PUREZA,
+    client_joao_alice: CONFIG_JOAO_ALICE
   };
 
   const guestsMap: Record<string, Guest[]> = {
     client_1: INITIAL_GUESTS,
-    client_novo: []
+    client_osvaldo_nicidia: [],
+    client_pedro_pureza: [],
+    client_joao_alice: []
   };
 
-  const seededClients: ClientWeddingSaaS[] = [
-    ...INITIAL_CLIENTS,
-    {
-      id: 'client_novo',
-      clientName: 'Novo & Noiva',
-      clientEmail: 'novo@kutxi.ao',
-      weddingDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      plan: 'Premium',
-      status: 'Active',
-      revenue: 65000,
-      config: configs.client_novo,
-      guestCount: 0,
-      rsvpsReceived: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-      features: {
-        allowWhatsAppAutomation: true,
-        allowCollectiveAlbum: true,
-        allowGatekeeperPortal: true,
-        maxGuests: 9999
-      }
-    }
-  ];
-
-  const seededAccounts: UserAccount[] = [
-    {
-      username: 'superadmin',
-      pass: 'admin123',
-      clientId: 'system',
-      clientName: 'Super Administrador',
-      role: 'superadmin'
-    },
-    {
-      username: 'ki-eventos',
-      pass: 'kieventos123',
-      clientId: 'system',
-      clientName: 'Super Administrador (Ki-Eventos)',
-      role: 'superadmin'
-    },
-    // Seeded account specifically created for client testing from screenshot
-    {
-      username: 'noivo.novo',
-      pass: 'vows.496',
-      clientId: 'client_novo',
-      clientName: 'Novo & Noiva',
-      role: 'couple'
-    },
-    {
-      username: 'noiva.novo',
-      pass: 'vows.496',
-      clientId: 'client_novo',
-      clientName: 'Novo & Noiva',
-      role: 'couple'
-    }
-  ];
-
   return {
-    userAccounts: seededAccounts,
-    clients: seededClients,
+    userAccounts: INITIAL_USER_ACCOUNTS,
+    clients: INITIAL_CLIENTS,
     weddingConfigs: configs,
     guests: guestsMap,
     saasPlans: DEFAULT_PLANS,
@@ -139,36 +81,29 @@ export function getServerDb(): ServerDatabase {
         if (!Array.isArray(parsed.activationRequests)) {
           parsed.activationRequests = [];
         }
-        // Ensure standard superadmin & client_novo exist
-        const hasSuper = parsed.userAccounts.some(a => a.username.toLowerCase() === 'superadmin');
-        if (!hasSuper) {
-          parsed.userAccounts.push({
-            username: 'superadmin',
-            pass: 'admin123',
-            clientId: 'system',
-            clientName: 'Super Administrador',
-            role: 'superadmin'
-          });
+        if (!parsed.weddingConfigs) {
+          parsed.weddingConfigs = {};
         }
-        const hasClientNovo = parsed.userAccounts.some(a => a.username.toLowerCase() === 'noivo.novo');
-        if (!hasClientNovo) {
-          parsed.userAccounts.push(
-            {
-              username: 'noivo.novo',
-              pass: 'vows.496',
-              clientId: 'client_novo',
-              clientName: 'Novo & Noiva',
-              role: 'couple'
-            },
-            {
-              username: 'noiva.novo',
-              pass: 'vows.496',
-              clientId: 'client_novo',
-              clientName: 'Novo & Noiva',
-              role: 'couple'
-            }
-          );
-        }
+
+        // Union merge INITIAL_CLIENTS so all 3 profiles are guaranteed present across all deployments
+        INITIAL_CLIENTS.forEach(ic => {
+          const exists = parsed.clients.some(c => c.id === ic.id || c.clientEmail?.toLowerCase() === ic.clientEmail?.toLowerCase());
+          if (!exists) {
+            parsed.clients.push(ic);
+          }
+          if (ic.config && (!parsed.weddingConfigs[ic.id] || !parsed.weddingConfigs[ic.id].brideGroom?.groomName)) {
+            parsed.weddingConfigs[ic.id] = ic.config;
+          }
+        });
+
+        // Union merge INITIAL_USER_ACCOUNTS
+        INITIAL_USER_ACCOUNTS.forEach(ia => {
+          const exists = parsed.userAccounts.some(a => a.username.toLowerCase() === ia.username.toLowerCase());
+          if (!exists) {
+            parsed.userAccounts.push(ia);
+          }
+        });
+
         cachedDb = parsed;
         return cachedDb;
       }
