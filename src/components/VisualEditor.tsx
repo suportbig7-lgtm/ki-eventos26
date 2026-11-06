@@ -659,6 +659,136 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
                         </div>
                       </div>
                     </div>
+
+                    {/* 4. CRONOGRAMA & HORÁRIOS EXCLUSIVOS DO CASAL */}
+                    <div className="p-4 sm:p-5 bg-stone-50/80 dark:bg-stone-900/60 border-2 border-stone-200 dark:border-stone-800 rounded-2xl space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-2 border-b border-stone-200 dark:border-stone-700">
+                        <div>
+                          <span className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                            ⏰ 4. Horários & Cronograma da Celebração
+                          </span>
+                          <span className="text-[11px] text-stone-500 dark:text-stone-400 font-light block">
+                            Cada horário é estritamente vinculado ao casal{' '}
+                            <strong className="text-[#8E2840] dark:text-rose-400">
+                              {editorConfig.brideGroom?.groomName || 'Noivo'} & {editorConfig.brideGroom?.brideName || 'Noiva'}
+                            </strong>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const groom = editorConfig.brideGroom?.groomName || 'Noivo';
+                            const bride = editorConfig.brideGroom?.brideName || 'Noiva';
+                            const newEvent = {
+                              id: 't_' + Date.now(),
+                              time: '20:00',
+                              title: 'Momento Especial',
+                              description: 'Descrição do momento da celebração.',
+                              icon: 'Heart',
+                              clientId: editorConfig.clientId || editorConfig.id,
+                              coupleName: `${groom} & ${bride}`,
+                              locationName: editorConfig.venue?.receptionName || editorConfig.venue?.ceremonyName || 'Local Oficial'
+                            };
+                            updateConfig(prev => ({
+                              ...prev,
+                              timeline: [...(prev.timeline || []), newEvent]
+                            }));
+                          }}
+                          className="px-3 py-1.5 bg-[#8E2840] hover:bg-[#782236] text-white rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1 self-start sm:self-auto"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Adicionar Horário</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {((editorConfig.timeline && editorConfig.timeline.length > 0) ? editorConfig.timeline : [
+                          { id: 't1_init', time: '10:30', title: 'Registo Civil', description: 'Assinatura oficial na Conservatória.', icon: 'FileText' },
+                          { id: 't2_init', time: '16:00', title: 'Bênção Religiosa', description: 'Cerimônia na igreja.', icon: 'Heart' },
+                          { id: 't3_init', time: '18:00', title: 'Copo de Água', description: 'Recepção e banquete com convidados.', icon: 'UtensilsCrossed' }
+                        ]).map((event, idx) => {
+                          const groom = editorConfig.brideGroom?.groomName || 'Noivo';
+                          const bride = editorConfig.brideGroom?.brideName || 'Noiva';
+                          return (
+                            <div key={event.id || idx} className="p-3 bg-white dark:bg-stone-850 rounded-xl border border-stone-200 dark:border-stone-700 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/50 text-[#8E2840] dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+                                  💍 {event.coupleName || `${groom} & ${bride}`}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    updateConfig(prev => ({
+                                      ...prev,
+                                      timeline: (prev.timeline || []).filter((_, i) => i !== idx)
+                                    }));
+                                  }}
+                                  className="text-stone-400 hover:text-rose-600 p-1 cursor-pointer"
+                                  title="Remover horário"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                  <label className="text-[10px] font-bold text-stone-600 dark:text-stone-400 block mb-0.5">Horário</label>
+                                  <input
+                                    type="text"
+                                    value={event.time}
+                                    placeholder="Ex: 16:00"
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      updateConfig(prev => {
+                                        const next = [...(prev.timeline || [])];
+                                        next[idx] = { ...next[idx], time: val, coupleName: `${groom} & ${bride}`, clientId: prev.clientId || prev.id };
+                                        return { ...prev, timeline: next };
+                                      });
+                                    }}
+                                    className={inputClass + " font-mono text-xs"}
+                                  />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="text-[10px] font-bold text-stone-600 dark:text-stone-400 block mb-0.5">Título do Evento</label>
+                                  <input
+                                    type="text"
+                                    value={event.title}
+                                    placeholder="Ex: Cerimónia Religiosa"
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      updateConfig(prev => {
+                                        const next = [...(prev.timeline || [])];
+                                        next[idx] = { ...next[idx], title: val, coupleName: `${groom} & ${bride}`, clientId: prev.clientId || prev.id };
+                                        return { ...prev, timeline: next };
+                                      });
+                                    }}
+                                    className={inputClass + " text-xs"}
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-stone-600 dark:text-stone-400 block mb-0.5">Descrição</label>
+                                <input
+                                  type="text"
+                                  value={event.description}
+                                  placeholder="Detalhes para os convidados"
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    updateConfig(prev => {
+                                      const next = [...(prev.timeline || [])];
+                                      next[idx] = { ...next[idx], description: val, coupleName: `${groom} & ${bride}`, clientId: prev.clientId || prev.id };
+                                      return { ...prev, timeline: next };
+                                    });
+                                  }}
+                                  className={inputClass + " text-xs"}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 

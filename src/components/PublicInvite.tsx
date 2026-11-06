@@ -148,6 +148,13 @@ export default function PublicInvite({
     } catch (e) {}
   }, [config.id]);
 
+  // Synchronize internal config state when prop initialConfig updates
+  useEffect(() => {
+    if (initialConfig) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig]);
+
   // Audio Playback
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -1176,7 +1183,7 @@ export default function PublicInvite({
                         Cerimónia Religiosa
                       </span>
                       <h3 className="font-serif text-lg font-bold text-stone-900 dark:text-white">
-                        {config.venue?.churchName || config.venue?.ceremonyName || 'Igreja Nossa Senhora do Carmo'}
+                        {config.venue?.churchName || config.venue?.ceremonyName || (groom.toLowerCase().includes('joão') || groom.toLowerCase().includes('joao') ? 'Igreja Metodista Unida Gaspar Adão De Almeida' : 'Igreja Nossa Senhora do Carmo')}
                       </h3>
                     </div>
 
@@ -1187,7 +1194,7 @@ export default function PublicInvite({
                       </div>
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                        <span>{config.venue?.churchAddress || config.venue?.ceremonyAddress || 'Largo do Carmo, Ingombota, Luanda'}</span>
+                        <span>{config.venue?.churchAddress || config.venue?.ceremonyAddress || (groom.toLowerCase().includes('joão') || groom.toLowerCase().includes('joao') ? 'Luanda, Angola' : 'Largo do Carmo, Ingombota, Luanda')}</span>
                       </div>
                     </div>
                   </div>
@@ -1252,7 +1259,7 @@ export default function PublicInvite({
                         Copo de Água & Recepção
                       </span>
                       <h3 className="font-serif text-lg font-bold text-stone-900 dark:text-white">
-                        {config.venue?.receptionName || 'Espaço Jardins da Welwitschia'}
+                        {config.venue?.receptionName || (groom.toLowerCase().includes('joão') || groom.toLowerCase().includes('joao') ? 'Igreja Metodista Unida Gaspar Adão De Almeida' : 'Espaço Jardins da Welwitschia')}
                       </h3>
                     </div>
 
@@ -1263,7 +1270,7 @@ export default function PublicInvite({
                       </div>
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
-                        <span>{config.venue?.receptionAddress || 'Via AL 15, Talatona, Luanda'}</span>
+                        <span>{config.venue?.receptionAddress || (groom.toLowerCase().includes('joão') || groom.toLowerCase().includes('joao') ? 'Luanda, Angola' : 'Via AL 15, Talatona, Luanda')}</span>
                       </div>
                     </div>
                   </div>
@@ -1278,6 +1285,64 @@ export default function PublicInvite({
                     <span>Ver no Google Maps</span>
                   </a>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {/* CRONOGRAMA & HORÁRIOS DA CELEBRAÇÃO (MARCADO COM O NOME DOS NOIVOS) */}
+          {visibleBlocks.timeline && (
+            <section className="bg-white dark:bg-stone-900 p-8 sm:p-10 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xs space-y-6" id="cronograma-section">
+              <div className="text-center space-y-1">
+                <span className="text-[10px] tracking-widest uppercase font-bold text-amber-700 dark:text-amber-400">
+                  Horários & Programação Oficial
+                </span>
+                <h2 className="text-3xl font-serif font-light text-stone-900 dark:text-white">
+                  Cronograma da Celebração
+                </h2>
+                <p className="text-xs text-stone-500 max-w-md mx-auto">
+                  Horários exclusivos do casamento de <strong>{groom} & {bride}</strong>.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(config.timeline && config.timeline.length > 0 ? config.timeline : [
+                  { id: 't1_default', time: '10:30', title: 'Registo Civil', description: 'Celebração civil oficial com a família e testemunhas.', icon: 'FileText' },
+                  { id: 't2_default', time: '16:00', title: 'Cerimónia Religiosa', description: 'Troca de votos e bênção matrimonial na igreja.', icon: 'Heart' },
+                  { id: 't3_default', time: '18:00', title: 'Copo de Água & Recepção', description: 'Banquete, brinde e celebração com todos os convidados.', icon: 'UtensilsCrossed' },
+                  { id: 't4_default', time: '21:30', title: 'Abertura da Pista & Festa', description: 'Corte do bolo e pista de dança.', icon: 'Music' }
+                ]).map((item, idx) => (
+                  <div 
+                    key={item.id || idx} 
+                    className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700/80 flex items-start gap-4 hover:border-amber-400/50 transition-all shadow-xs"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 flex flex-col items-center justify-center shrink-0 border border-amber-200 dark:border-amber-800 font-mono">
+                      <Clock className="w-4 h-4 mb-0.5" />
+                      <span className="text-[10px] font-bold">{item.time}</span>
+                    </div>
+
+                    <div className="flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center justify-between gap-1">
+                        <h3 className="text-sm font-bold text-stone-900 dark:text-white">
+                          {item.title}
+                        </h3>
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/50 text-[#8E2840] dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+                          💍 {item.coupleName || `${groom} & ${bride}`}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+                        {item.description}
+                      </p>
+
+                      {item.locationName && (
+                        <div className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 pt-1">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{item.locationName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           )}

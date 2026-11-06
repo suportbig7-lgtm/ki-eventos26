@@ -7,9 +7,9 @@ import {
   AlertTriangle, Upload, 
   CheckSquare, Square, Printer, MessageCircle, Share2, Gift, Camera, 
   Heart, BookOpen, QrCode, ChevronRight, X,
-  ShoppingBag, Coins, Trophy, Target, ArrowUpRight, Search, ChevronDown, SlidersHorizontal, Download
+  ShoppingBag, Coins, Trophy, Target, ArrowUpRight, Search, ChevronDown, SlidersHorizontal, Download, Zap
 } from 'lucide-react';
-import { Guest, WeddingConfig, TodoItem, ClientWeddingSaaS } from '../types';
+import { Guest, WeddingConfig, TodoItem, ClientWeddingSaaS, RecurringSubscription } from '../types';
 import { getSafeImageUrl, handleImageError } from '../utils/imageFallback';
 import { downloadQrCodeImage } from '../utils/qrCodeHelper';
 import { downloadPhysicalCardQrPdf } from '../utils/pdfGenerator';
@@ -17,6 +17,7 @@ import { buildPortableInviteLink } from '../utils/portableLink';
 import EventOnboardingModal from './EventOnboardingModal';
 import UpgradePlanModal from './UpgradePlanModal';
 import ActivationRequestModal from './ActivationRequestModal';
+import { BillingGatewayModal } from './BillingGatewayModal';
 import { usePlanPermissions } from '../hooks/usePlanPermissions';
 
 interface SaaSOverviewProps {
@@ -51,6 +52,7 @@ export default function SaaSOverview({
   });
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [showActivationModal, setShowActivationModal] = useState<boolean>(false);
+  const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
   const [activationSubmittedToast, setActivationSubmittedToast] = useState(false);
 
   // Stats
@@ -338,6 +340,16 @@ export default function SaaSOverview({
                 <span>Solicitar Ativação</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setShowBillingModal(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-stone-200/80 dark:border-stone-700 hover:border-amber-500/40 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                title="Gerenciar assinatura mensal recorrente, Multicaixa Express e faturas"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <span>Assinatura Mensal</span>
+              </button>
+
               {onOpenPublicInvite && (
                 <button
                   type="button"
@@ -567,6 +579,72 @@ export default function SaaSOverview({
             <span>Abrir Validador da Recepção</span>
             <ChevronRight className="w-4 h-4 ml-1" />
           </div>
+        </div>
+      </div>
+
+      {/* CRONOGRAMA & HORÁRIOS EXCLUSIVOS DO CASAL (MARCAÇÃO POR CASAL) */}
+      <div className="bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xs border border-stone-200/80 dark:border-stone-800 space-y-4 text-stone-800 dark:text-stone-100">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-stone-100 dark:border-stone-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <h3 className="font-bold text-base text-stone-900 dark:text-white font-sans">
+                Cronograma & Horários do Casamento
+              </h3>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-900">
+                💍 Exclusivo: {config.brideGroom?.groomName || 'Noivo'} & {config.brideGroom?.brideName || 'Noiva'}
+              </span>
+            </div>
+            <p className="text-xs text-stone-500 dark:text-stone-400 font-light">
+              Horários isolados e personalizados para este perfil. Nenhum outro casal visualiza este cronograma.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab && onNavigateTab('editor')}
+            className="px-4 py-2 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 self-start sm:self-auto border border-stone-200 dark:border-stone-700"
+          >
+            <Edit className="w-3.5 h-3.5" />
+            <span>Editar Horários no Editor</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {(config.timeline && config.timeline.length > 0 ? config.timeline : [
+            { id: 't1_def', time: '10:30', title: 'Registo Civil', description: 'Conservatória do Registo Civil', icon: 'FileText' },
+            { id: 't2_def', time: '16:00', title: 'Cerimónia Religiosa', description: config.venue?.ceremonyName || 'Igreja', icon: 'Heart' },
+            { id: 't3_def', time: '18:00', title: 'Copo de Água', description: config.venue?.receptionName || 'Recepção', icon: 'UtensilsCrossed' },
+            { id: 't4_def', time: '21:30', title: 'Festa & Baile', description: 'Abertura da Pista', icon: 'Music' }
+          ]).map((item, idx) => (
+            <div 
+              key={item.id || idx}
+              className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200/70 dark:border-stone-800 flex flex-col justify-between space-y-2 hover:border-amber-400/40 transition-all shadow-2xs"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300">
+                  {item.time}
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300">
+                  💍 {item.coupleName || `${config.brideGroom?.groomName || 'Noivo'} & ${config.brideGroom?.brideName || 'Noiva'}`}
+                </span>
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-stone-900 dark:text-white">
+                  {item.title}
+                </h4>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-2 mt-0.5 font-light">
+                  {item.description}
+                </p>
+              </div>
+              {item.locationName && (
+                <div className="flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400 pt-1 border-t border-stone-200/50 dark:border-stone-800">
+                  <MapPin className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{item.locationName}</span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1041,6 +1119,27 @@ export default function SaaSOverview({
           config
         }}
         onRequestSubmitted={() => {
+          setActivationSubmittedToast(true);
+          setTimeout(() => setActivationSubmittedToast(false), 4000);
+        }}
+      />
+
+      {/* MONTHLY RECURRING BILLING & GATEWAY MODAL */}
+      <BillingGatewayModal
+        isOpen={showBillingModal}
+        onClose={() => setShowBillingModal(false)}
+        client={client || {
+          id: config.clientId || config.id || 'client_1',
+          clientName: coupleDisplayName,
+          clientEmail: config.contactInfo?.email || 'casal@kutxi.ao',
+          weddingDate: config.date ? config.date.split('T')[0] : '2026-10-25',
+          plan: 'Luxury',
+          status: 'Active',
+          revenue: 110000,
+          config
+        }}
+        onSubscriptionUpdated={() => {
+          setShowBillingModal(false);
           setActivationSubmittedToast(true);
           setTimeout(() => setActivationSubmittedToast(false), 4000);
         }}

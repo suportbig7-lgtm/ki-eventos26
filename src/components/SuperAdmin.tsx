@@ -7,12 +7,13 @@ import {
   Edit, Trash2, Key, Copy, Check, Eye, Calendar, Mail, Smartphone, 
   RefreshCw, LayoutDashboard, Sliders, Lock, ExternalLink, QrCode, FileText,
   Database, Cloud, MessageCircle, AlertCircle, ShieldAlert, CheckCircle,
-  Ban, Shield, Power, ToggleLeft, ToggleRight, X, Clock, Upload
+  Ban, Shield, Power, ToggleLeft, ToggleRight, X, Clock, Upload, Zap
 } from 'lucide-react';
 import { ClientWeddingSaaS, ClientFeatures, SystemAuditLog, WeddingConfig, Guest, MessagingWebhookConfig, MessagingLog, ActivationRequest } from '../types';
 import { INITIAL_WEDDING_CONFIG, SaaSPlanConfig, DEFAULT_PLANS } from '../data/defaultConfig';
 import ClientReadOnlyModal from './ClientReadOnlyModal';
 import SupabaseModal from './SupabaseModal';
+import { BillingGatewayModal } from './BillingGatewayModal';
 import { safeSetItem, resetAllDataToVirgin } from '../utils/storage';
 import { isSupabaseConfigured } from '../services/supabase';
 import { dbService } from '../services/dbService';
@@ -51,6 +52,7 @@ export default function SuperAdmin({
   const [activationRequests, setActivationRequests] = useState<ActivationRequest[]>([]);
   const [isActLoading, setIsActLoading] = useState(false);
   const [actSuccessMsg, setActSuccessMsg] = useState<string | null>(null);
+  const [selectedBillingClient, setSelectedBillingClient] = useState<ClientWeddingSaaS | null>(null);
 
   const fetchActivations = () => {
     dbService.activation.getAll().then(list => {
@@ -119,6 +121,24 @@ export default function SuperAdmin({
   // Form fields for Client CRUD
   const [brideName, setBrideName] = useState('');
   const [groomName, setGroomName] = useState('');
+  const [groomFullName, setGroomFullName] = useState('');
+  const [groomParents, setGroomParents] = useState('');
+  const [brideFullName, setBrideFullName] = useState('');
+  const [brideParents, setBrideParents] = useState('');
+  const [customSlug, setCustomSlug] = useState('');
+  const [churchName, setChurchName] = useState('');
+  const [churchAddress, setChurchAddress] = useState('');
+  const [churchTime, setChurchTime] = useState('16:00');
+  const [civilName, setCivilName] = useState('');
+  const [civilAddress, setCivilAddress] = useState('');
+  const [civilTime, setCivilTime] = useState('10:30');
+  const [receptionName, setReceptionName] = useState('');
+  const [receptionAddress, setReceptionAddress] = useState('');
+  const [receptionTime, setReceptionTime] = useState('18:00');
+  const [storyTitle, setStoryTitle] = useState('Nossa História de Amor');
+  const [storyContent, setStoryContent] = useState('');
+  const [clientModalTab, setClientModalTab] = useState<'basic' | 'venues' | 'story'>('basic');
+
   const [clientEmail, setClientEmail] = useState('');
   const [weddingDate, setWeddingDate] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<'Basic' | 'Premium' | 'Luxury'>('Premium');
@@ -175,9 +195,26 @@ export default function SuperAdmin({
     setEditingClient(null);
     setBrideName('');
     setGroomName('');
+    setGroomFullName('');
+    setGroomParents('');
+    setBrideFullName('');
+    setBrideParents('');
+    setCustomSlug('');
+    setChurchName('Igreja Metodista Unida Gaspar Adão De Almeida');
+    setChurchAddress('Luanda, Angola');
+    setChurchTime('16:00');
+    setCivilName('Conservatória do Registo Civil');
+    setCivilAddress('Rua Rainha Ginga, Luanda, Angola');
+    setCivilTime('10:30');
+    setReceptionName('Igreja Metodista Unida Gaspar Adão De Almeida');
+    setReceptionAddress('Luanda, Angola');
+    setReceptionTime('18:00');
+    setStoryTitle('Nossa História de Amor');
+    setStoryContent('Nos conhecemos num belo fim de tarde à beira da Baía de Luanda. Anos de risadas, desafios superados e um amor que cresceu e amadureceu diante de Deus.');
+    setClientModalTab('basic');
     setClientEmail('');
-    setWeddingDate('2026-10-25');
-    setSelectedPlan('Premium');
+    setWeddingDate('2026-11-14');
+    setSelectedPlan('Luxury');
     setSelectedStatus('Active');
 
     const rand1 = Math.floor(100 + Math.random() * 900);
@@ -194,13 +231,34 @@ export default function SuperAdmin({
     if (e) e.stopPropagation();
     setEditingClient(client);
 
-    const bride = client.config?.brideGroom?.brideName || client.clientName.split('&')[0]?.trim() || 'Noiva';
-    const groom = client.config?.brideGroom?.groomName || client.clientName.split('&')[1]?.trim() || 'Noivo';
+    const cfg = client.config;
+    const parts = (client.clientName || '').split('&').map(p => p.trim());
+    // Format is "Groom & Bride" (e.g. "João & Alice", "Pedro & Pureza", "Osvaldo & Nicidia")
+    const groom = cfg?.brideGroom?.groomName || parts[0] || 'Noivo';
+    const bride = cfg?.brideGroom?.brideName || parts[1] || 'Noiva';
 
-    setBrideName(bride);
     setGroomName(groom);
+    setBrideName(bride);
+    setGroomFullName(cfg?.brideGroom?.groomFullName || groom);
+    setBrideFullName(cfg?.brideGroom?.brideFullName || bride);
+    setGroomParents(cfg?.brideGroom?.groomParents || '');
+    setBrideParents(cfg?.brideGroom?.brideParents || '');
+    setCustomSlug(cfg?.slug || client.id.replace(/^client_/, ''));
+    setChurchName(cfg?.venue?.churchName || cfg?.venue?.ceremonyName || '');
+    setChurchAddress(cfg?.venue?.churchAddress || cfg?.venue?.ceremonyAddress || '');
+    setChurchTime(cfg?.venue?.churchTime || cfg?.venue?.ceremonyTime || '16:00');
+    setCivilName(cfg?.venue?.civilName || '');
+    setCivilAddress(cfg?.venue?.civilAddress || '');
+    setCivilTime(cfg?.venue?.civilTime || '10:30');
+    setReceptionName(cfg?.venue?.receptionName || '');
+    setReceptionAddress(cfg?.venue?.receptionAddress || '');
+    setReceptionTime(cfg?.venue?.receptionTime || '18:00');
+    setStoryTitle(cfg?.storyTitle || 'Nossa História de Amor');
+    setStoryContent(cfg?.storyContent || '');
+    setClientModalTab('basic');
+
     setClientEmail(client.clientEmail);
-    setWeddingDate(client.weddingDate);
+    setWeddingDate(client.weddingDate ? client.weddingDate.split('T')[0] : '2026-11-14');
     setSelectedPlan(client.plan as any);
     setSelectedStatus(client.status as any);
 
@@ -305,7 +363,54 @@ export default function SuperAdmin({
       { username: user2Username.trim(), pass: user2Pass.trim() }
     ];
 
+    const now = Date.now();
+    const cleanSlug = (customSlug || `${groomName.toLowerCase()}-${brideName.toLowerCase()}`)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9_-]/g, '-');
+
     if (editingClient) {
+      const baseCfg = editingClient.config || INITIAL_WEDDING_CONFIG;
+      const updatedConfig: WeddingConfig = {
+        ...baseCfg,
+        id: editingClient.id,
+        clientId: editingClient.id,
+        slug: cleanSlug,
+        updatedAt: now,
+        isNewProfile: false,
+        onboardingCompleted: true,
+        brideGroom: {
+          ...baseCfg.brideGroom,
+          groomName: groomName.trim(),
+          groomFullName: groomFullName.trim() || groomName.trim(),
+          groomParents: groomParents.trim() || baseCfg.brideGroom?.groomParents || '',
+          brideName: brideName.trim(),
+          brideFullName: brideFullName.trim() || brideName.trim(),
+          brideParents: brideParents.trim() || baseCfg.brideGroom?.brideParents || '',
+        },
+        date: weddingDate.includes('T') ? weddingDate : `${weddingDate}T16:00:00`,
+        storyTitle: storyTitle.trim() || baseCfg.storyTitle || 'Nossa História de Amor',
+        storyContent: storyContent.trim() || baseCfg.storyContent || 'Nos conhecemos num belo fim de tarde à beira da Baía de Luanda. Anos de risadas, desafios superados e um amor que cresceu e amadureceu diante de Deus.',
+        venue: {
+          ...baseCfg.venue,
+          churchName: churchName.trim() || baseCfg.venue?.churchName || 'Igreja Metodista Unida Gaspar Adão De Almeida',
+          ceremonyName: churchName.trim() || baseCfg.venue?.ceremonyName || 'Igreja Metodista Unida Gaspar Adão De Almeida',
+          churchAddress: churchAddress.trim() || baseCfg.venue?.churchAddress || 'Luanda, Angola',
+          ceremonyAddress: churchAddress.trim() || baseCfg.venue?.ceremonyAddress || 'Luanda, Angola',
+          churchTime: churchTime.trim() || baseCfg.venue?.churchTime || '16:00',
+          ceremonyTime: churchTime.trim() || baseCfg.venue?.ceremonyTime || '16:00',
+          civilName: civilName.trim() || baseCfg.venue?.civilName || 'Conservatória do Registo Civil',
+          civilAddress: civilAddress.trim() || baseCfg.venue?.civilAddress || 'Rua Rainha Ginga, Luanda, Angola',
+          civilTime: civilTime.trim() || baseCfg.venue?.civilTime || '10:30',
+          receptionName: receptionName.trim() || baseCfg.venue?.receptionName || 'Igreja Metodista Unida Gaspar Adão De Almeida',
+          receptionAddress: receptionAddress.trim() || baseCfg.venue?.receptionAddress || 'Luanda, Angola',
+          receptionTime: receptionTime.trim() || baseCfg.venue?.receptionTime || '18:00',
+          receptionMapsUrl: baseCfg.venue?.receptionMapsUrl || 'https://maps.google.com'
+        },
+        customFooter: `Com amor, sempre. — ${fullName}`
+      };
+
       const updatedClient: ClientWeddingSaaS = {
         ...editingClient,
         clientName: fullName,
@@ -314,19 +419,51 @@ export default function SuperAdmin({
         plan: selectedPlan,
         status: selectedStatus,
         accessRevoked: selectedStatus === 'Suspended',
-        config: {
-          ...editingClient.config,
-          brideGroom: {
-            ...editingClient.config.brideGroom,
-            brideName: brideName.trim(),
-            groomName: groomName.trim(),
-          },
-          date: weddingDate + 'T16:00:00'
-        }
+        updatedAt: now,
+        config: updatedConfig
       };
       onUpdateClient(updatedClient, accountsToAdd);
     } else {
       const newClientId = 'client_' + Date.now();
+      const newConfig: WeddingConfig = {
+        ...INITIAL_WEDDING_CONFIG,
+        id: newClientId,
+        clientId: newClientId,
+        slug: cleanSlug,
+        updatedAt: now,
+        isNewProfile: false,
+        onboardingCompleted: true,
+        brideGroom: {
+          ...INITIAL_WEDDING_CONFIG.brideGroom,
+          groomName: groomName.trim(),
+          groomFullName: groomFullName.trim() || groomName.trim(),
+          groomParents: groomParents.trim(),
+          brideName: brideName.trim(),
+          brideFullName: brideFullName.trim() || brideName.trim(),
+          brideParents: brideParents.trim(),
+        },
+        date: weddingDate.includes('T') ? weddingDate : `${weddingDate}T16:00:00`,
+        storyTitle: storyTitle.trim() || 'Nossa História de Amor',
+        storyContent: storyContent.trim() || 'Nos conhecemos num belo fim de tarde à beira da Baía de Luanda. Anos de risadas, desafios superados e um amor que cresceu e amadureceu diante de Deus.',
+        venue: {
+          ...INITIAL_WEDDING_CONFIG.venue,
+          churchName: churchName.trim() || 'Igreja Metodista Unida Gaspar Adão De Almeida',
+          ceremonyName: churchName.trim() || 'Igreja Metodista Unida Gaspar Adão De Almeida',
+          churchAddress: churchAddress.trim() || 'Luanda, Angola',
+          ceremonyAddress: churchAddress.trim() || 'Luanda, Angola',
+          churchTime: churchTime.trim() || '16:00',
+          ceremonyTime: churchTime.trim() || '16:00',
+          civilName: civilName.trim() || 'Conservatória do Registo Civil',
+          civilAddress: civilAddress.trim() || 'Rua Rainha Ginga, Luanda, Angola',
+          civilTime: civilTime.trim() || '10:30',
+          receptionName: receptionName.trim() || 'Igreja Metodista Unida Gaspar Adão De Almeida',
+          receptionAddress: receptionAddress.trim() || 'Luanda, Angola',
+          receptionTime: receptionTime.trim() || '18:00',
+          receptionMapsUrl: 'https://maps.google.com'
+        },
+        customFooter: `Com amor, sempre. — ${fullName}`
+      };
+
       const newClient: ClientWeddingSaaS = {
         id: newClientId,
         clientName: fullName,
@@ -338,18 +475,8 @@ export default function SuperAdmin({
         rsvpsReceived: 0,
         revenue: selectedPlan === 'Luxury' ? 225000 : selectedPlan === 'Premium' ? 135000 : 45000,
         createdAt: new Date().toISOString().split('T')[0],
-        config: {
-          ...INITIAL_WEDDING_CONFIG,
-          id: newClientId,
-          clientId: newClientId,
-          brideGroom: {
-            ...INITIAL_WEDDING_CONFIG.brideGroom,
-            brideName: brideName.trim(),
-            groomName: groomName.trim(),
-          },
-          date: weddingDate + 'T16:00:00',
-          customFooter: `Com amor, sempre. — ${fullName}`
-        }
+        updatedAt: now,
+        config: newConfig
       };
       onAddClient(newClient, accountsToAdd);
     }
@@ -888,6 +1015,13 @@ export default function SuperAdmin({
                                 title="Ver Ficha em Modo Leitura"
                               >
                                 <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setSelectedBillingClient(client)}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg cursor-pointer"
+                                title="Gerenciar Assinatura & Gateway de Cobrança"
+                              >
+                                <Zap className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={(e) => handleOpenEditModal(client, e)}
@@ -1617,121 +1751,341 @@ export default function SuperAdmin({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full overflow-hidden my-8"
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-xl w-full overflow-hidden my-8 max-h-[90vh] flex flex-col"
             >
-              <div className="bg-slate-950 p-5 text-white flex justify-between items-center border-b border-slate-800">
-                <h3 className="font-bold text-sm">
-                  {editingClient ? `Editar Casal: ${editingClient.clientName}` : 'Adicionar Novo Casal'}
-                </h3>
+              <div className="bg-slate-950 p-5 text-white flex justify-between items-center border-b border-slate-800 shrink-0">
+                <div>
+                  <h3 className="font-bold text-sm">
+                    {editingClient ? `Editar Casal: ${editingClient.clientName}` : 'Adicionar Novo Casal'}
+                  </h3>
+                  <p className="text-[10px] text-slate-400">Configuração completa de perfil, locais, cronograma e credenciais.</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-xs"
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-xs cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveClient} className="p-6 space-y-4 text-xs font-semibold">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Nome do Noivo *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Gabriel"
-                      value={groomName}
-                      onChange={e => setGroomName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Nome da Noiva *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Sofia"
-                      value={brideName}
-                      onChange={e => setBrideName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-                </div>
+              {/* Sub-tabs inside modal */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800 px-6 pt-3 gap-2 bg-slate-50 dark:bg-slate-950 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setClientModalTab('basic')}
+                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                    clientModalTab === 'basic'
+                      ? 'border-rose-600 text-rose-600 dark:text-rose-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Geral & Acessos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientModalTab('venues')}
+                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                    clientModalTab === 'venues'
+                      ? 'border-rose-600 text-rose-600 dark:text-rose-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Locais da Celebração
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientModalTab('story')}
+                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                    clientModalTab === 'story'
+                      ? 'border-rose-600 text-rose-600 dark:text-rose-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Família & História
+                </button>
+              </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">E-mail</label>
-                    <input
-                      type="email"
-                      required
-                      value={clientEmail}
-                      onChange={e => setClientEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Data do Casamento</label>
-                    <input
-                      type="date"
-                      required
-                      value={weddingDate}
-                      onChange={e => setWeddingDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-                </div>
+              <form onSubmit={handleSaveClient} className="p-6 space-y-4 text-xs font-semibold overflow-y-auto grow">
+                {clientModalTab === 'basic' && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Nome do Noivo *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: João"
+                          value={groomName}
+                          onChange={e => setGroomName(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Nome da Noiva *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: Alice"
+                          value={brideName}
+                          onChange={e => setBrideName(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Plano Contratado</label>
-                    <select
-                      value={selectedPlan}
-                      onChange={e => setSelectedPlan(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
-                    >
-                      <option value="Basic">Essencial (45.000 Kz)</option>
-                      <option value="Premium">Premium (135.000 Kz)</option>
-                      <option value="Luxury">Luxo VIP (225.000 Kz)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-500 uppercase font-bold text-[10px]">Status da Licença</label>
-                    <select
-                      value={selectedStatus}
-                      onChange={e => setSelectedStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
-                    >
-                      <option value="Active">Ativo (Acesso Liberado)</option>
-                      <option value="Trial">Pendente Pagamento</option>
-                      <option value="Suspended">Suspenso (Acesso Bloqueado)</option>
-                    </select>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Nome Completo Noivo</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: João dos Santos"
+                          value={groomFullName}
+                          onChange={e => setGroomFullName(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Nome Completo Noiva</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Alice de Oliveira"
+                          value={brideFullName}
+                          onChange={e => setBrideFullName(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        />
+                      </div>
+                    </div>
 
-                {/* Credentials */}
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-400">Contas de Acesso</span>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                    <div>
-                      <span className="text-[9px] text-slate-400 block">User 1</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">E-mail *</label>
+                        <input
+                          type="email"
+                          required
+                          value={clientEmail}
+                          onChange={e => setClientEmail(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Data do Casamento *</label>
+                        <input
+                          type="date"
+                          required
+                          value={weddingDate}
+                          onChange={e => setWeddingDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Plano Contratado</label>
+                        <select
+                          value={selectedPlan}
+                          onChange={e => setSelectedPlan(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                        >
+                          <option value="Basic">Essencial (45.000 Kz)</option>
+                          <option value="Premium">Premium (135.000 Kz)</option>
+                          <option value="Luxury">Luxo VIP (225.000 Kz)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-500 uppercase font-bold text-[10px]">Status da Licença</label>
+                        <select
+                          value={selectedStatus}
+                          onChange={e => setSelectedStatus(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                        >
+                          <option value="Active">Ativo (Acesso Liberado)</option>
+                          <option value="Trial">Pendente Pagamento</option>
+                          <option value="Suspended">Suspenso (Acesso Bloqueado)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 uppercase font-bold text-[10px]">Slug do Link Amigável (ex: ?invite=joao-alice)</label>
                       <input
                         type="text"
-                        value={user1Username}
-                        onChange={e => setUser1Username(e.target.value)}
-                        className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded"
+                        placeholder="Ex: joao-alice"
+                        value={customSlug}
+                        onChange={e => setCustomSlug(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-[11px]"
                       />
                     </div>
-                    <div>
-                      <span className="text-[9px] text-slate-400 block">Senha 1</span>
+
+                    {/* Credentials */}
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-400">Contas de Acesso</span>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                        <div>
+                          <span className="text-[9px] text-slate-400 block">User 1</span>
+                          <input
+                            type="text"
+                            value={user1Username}
+                            onChange={e => setUser1Username(e.target.value)}
+                            className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-slate-400 block">Senha 1</span>
+                          <input
+                            type="text"
+                            value={user1Pass}
+                            onChange={e => setUser1Pass(e.target.value)}
+                            className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded text-amber-600 font-bold"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {clientModalTab === 'venues' && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    {/* 1. Igreja / Religiosa */}
+                    <div className="p-3.5 bg-amber-500/10 rounded-2xl border border-amber-300/40 dark:border-amber-800/50 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-400 block">1. Cerimónia Religiosa (Igreja)</span>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Nome da Igreja (Ex: Igreja Metodista Unida Gaspar Adão De Almeida)"
+                          value={churchName}
+                          onChange={e => setChurchName(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Horário (Ex: 16:00)"
+                            value={churchTime}
+                            onChange={e => setChurchTime(e.target.value)}
+                            className="col-span-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Endereço / Cidade (Ex: Luanda, Angola)"
+                            value={churchAddress}
+                            onChange={e => setChurchAddress(e.target.value)}
+                            className="col-span-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. Registo Civil */}
+                    <div className="p-3.5 bg-stone-500/10 rounded-2xl border border-stone-300/40 dark:border-stone-700/50 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-stone-700 dark:text-stone-300 block">2. Cerimónia Civil (Registo)</span>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Nome da Conservatória (Ex: Conservatória do Registo Civil)"
+                          value={civilName}
+                          onChange={e => setCivilName(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Horário (Ex: 10:30)"
+                            value={civilTime}
+                            onChange={e => setCivilTime(e.target.value)}
+                            className="col-span-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Endereço (Ex: Rua Rainha Ginga, Luanda)"
+                            value={civilAddress}
+                            onChange={e => setCivilAddress(e.target.value)}
+                            className="col-span-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. Copo de Água */}
+                    <div className="p-3.5 bg-rose-500/10 rounded-2xl border border-rose-300/40 dark:border-rose-800/50 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-rose-800 dark:text-rose-400 block">3. Copo de Água & Recepção</span>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Espaço da Festa (Ex: Igreja Metodista Unida Gaspar Adão De Almeida)"
+                          value={receptionName}
+                          onChange={e => setReceptionName(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Horário (Ex: 18:00)"
+                            value={receptionTime}
+                            onChange={e => setReceptionTime(e.target.value)}
+                            className="col-span-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Endereço (Ex: Luanda, Angola)"
+                            value={receptionAddress}
+                            onChange={e => setReceptionAddress(e.target.value)}
+                            className="col-span-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {clientModalTab === 'story' && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-1">
+                      <label className="text-slate-500 uppercase font-bold text-[10px]">Pais do Noivo</label>
                       <input
                         type="text"
-                        value={user1Pass}
-                        onChange={e => setUser1Pass(e.target.value)}
-                        className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded text-amber-600 font-bold"
+                        placeholder="Ex: Sr. Mateus dos Santos & Sra. Helena dos Santos"
+                        value={groomParents}
+                        onChange={e => setGroomParents(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 uppercase font-bold text-[10px]">Pais da Noiva</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Sr. Domingos de Oliveira & Sra. Maria de Oliveira"
+                        value={brideParents}
+                        onChange={e => setBrideParents(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 uppercase font-bold text-[10px]">Título da História</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Nossa História de Amor"
+                        value={storyTitle}
+                        onChange={e => setStoryTitle(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-500 uppercase font-bold text-[10px]">Conteúdo da História de Amor</label>
+                      <textarea
+                        rows={4}
+                        placeholder="Descreva como os noivos se conheceram..."
+                        value={storyContent}
+                        onChange={e => setStoryContent(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs leading-relaxed"
                       />
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex gap-2 pt-2">
                   <button
@@ -2275,6 +2629,18 @@ export default function SuperAdmin({
           </div>
         )}
       </AnimatePresence>
+
+      {/* MONTHLY RECURRING BILLING & GATEWAY MODAL */}
+      {selectedBillingClient && (
+        <BillingGatewayModal
+          isOpen={Boolean(selectedBillingClient)}
+          onClose={() => setSelectedBillingClient(null)}
+          client={selectedBillingClient}
+          onSubscriptionUpdated={() => {
+            fetchActivations();
+          }}
+        />
+      )}
     </div>
   );
 }

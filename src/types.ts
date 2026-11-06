@@ -22,6 +22,9 @@ export interface WeddingTimelineEvent {
   title: string;
   description: string;
   icon: string;
+  clientId?: string;
+  coupleName?: string;
+  locationName?: string;
 }
 
 export interface VenueInfo {
@@ -334,4 +337,55 @@ export interface UserAccount {
   role?: 'superadmin' | 'couple' | 'staff';
   email?: string;
   googleId?: string;
+}
+
+export interface RecurringSubscription {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientEmail: string;
+  plan: 'Basic' | 'Premium' | 'Luxury' | 'Enterprise';
+  amountMonthly: number;
+  currency: 'AOA' | 'USD' | 'EUR';
+  status: 'active' | 'past_due' | 'canceled' | 'trialing';
+  interval: 'monthly' | 'yearly';
+  paymentMethod: 'multicaixa_express' | 'credit_card' | 'bank_reference';
+  paymentPhone?: string;
+  paymentReference?: string;
+  nextBillingDate: string;
+  lastPaymentDate?: string;
+  autoRenew: boolean;
+  createdAt: string;
+  updatedAt: string;
+  invoicesCount: number;
+  lastInvoiceUrl?: string;
+}
+
+export interface OrderValidationResult {
+  valid: boolean;
+  code: 'OK' | 'QUOTA_EXCEEDED' | 'PLAN_SUSPENDED' | 'INVALID_CLIENT' | 'LIMIT_EXCEEDED';
+  message: string;
+  details?: {
+    clientId?: string;
+    clientName?: string;
+    currentGuests?: number;
+    maxGuests?: number;
+    plan?: string;
+    planStatus?: string;
+    requestedAction?: string;
+    remainingQuota?: number;
+  };
+}
+
+export interface SaaSHealthStatus {
+  status: 'healthy' | 'degraded' | 'down';
+  uptimeSeconds: number;
+  timestamp: string;
+  latencyMs: number;
+  version: string;
+  databaseConnected: boolean;
+  totalClients: number;
+  activeSubscriptions: number;
+  memoryUsageMb?: number;
+  alarmTriggered?: boolean;
 }

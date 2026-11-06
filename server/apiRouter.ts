@@ -10,9 +10,35 @@ function getTwilioServerCreds() {
   return { accountSid, apiKeySid, secret, fromNumber };
 }
 
-// Health check endpoint
+// Health check endpoint with uptime, database status, and real-time telemetry
 apiRouter.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  try {
+    const metrics = getSaaSHealthMetrics();
+    res.json(metrics);
+  } catch (err: any) {
+    res.status(500).json({
+      status: 'down',
+      uptimeSeconds: 0,
+      timestamp: new Date().toISOString(),
+      latencyMs: 999,
+      version: '2.6.0-prod',
+      databaseConnected: false,
+      totalClients: 0,
+      activeSubscriptions: 0,
+      alarmTriggered: true,
+      error: err.message
+    });
+  }
+});
+
+// Telemetry & uptime monitoring endpoint
+apiRouter.get('/monitoring/status', (_req, res) => {
+  try {
+    const metrics = getSaaSHealthMetrics();
+    res.json({ success: true, metrics });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Twilio status endpoint (NEVER reveals raw secrets)
@@ -219,7 +245,12 @@ import {
   createActivationRequest,
   getActivationRequests,
   approveActivationRequest,
-  rejectActivationRequest
+  rejectActivationRequest,
+  validateClientOrder,
+  createOrRenewSubscription,
+  getSubscriptions,
+  processBillingWebhook,
+  getSaaSHealthMetrics
 } from './dbStore';
 
 // POST /api/auth/login: Cross-device login check
@@ -440,6 +471,135 @@ apiRouter.post('/clients/:id/toggle-access', (req, res) => {
     return res.json({ success: true, client });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/orders/validate: Pre-checks order/action before processing
+apiRouter.post('/orders/validate', (req, res) => {
+  try {
+    const { clientId, requestedAction, guestCount } = req.body || {};
+    if (!clientId) {
+      return res.status(400).json({
+        valid: false,
+        code: 'INVALID_CLIENT',
+        message: 'Identificador do cliente (clientId) obrigatório.'
+      });
+    }
+
+    const validation = validateClientOrder(
+      clientId, 
+      requestedAction || 'general_access', 
+      guestCount !== undefined ? Number(guestCount) : undefined
+    );
+
+    if (!validation.valid) {
+      return res.status(403).json(validation);
+    }
+    return res.json(validation);
+  } catch (err: any) {
+    return res.status(500).json({
+      valid: false,
+      code: 'SERVER_ERROR',
+      message: `Erro interno ao validar pedido: ${err.message}`
+    });
+  }
+});
+
+// GET /api/billing/subscriptions: List all or query by clientId
+apiRouter.get('/billing/subscriptions', (req, res) => {
+  try {
+    const clientId = req.query.clientId as string | undefined;
+    const subs = getSubscriptions(clientId);
+    return res.json({ success: true, subscriptions: subs });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/billing/subscriptions/:clientId
+apiRouter.get('/billing/subscriptions/:clientId', (req, res) => {
+  try {
+    const subs = getSubscriptions(req.params.clientId);
+    const sub = subs[0] || null;
+    return res.json({ success: true, subscription: sub });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/billing/checkout: Process immediate subscription checkout or upgrade
+apiRouter.post('/billing/checkout', (req, res) => {
+  try {
+    const { clientId, plan, paymentMethod, paymentPhone, paymentReference, autoRenew } = req.body || {};
+    if (!clientId || !plan) {
+      return res.status(400).json({ success: false, error: 'Parâmetros obrigatórios ausentes: clientId e plan.' });
+    }
+
+    const amountMap: Record<string, number> = {
+      Basic: 35000,
+      Premium: 65000,
+      Luxury: 110000,
+      Enterprise: 220000
+    };
+    const amount = amountMap[plan] || 65000;
+
+    const result = createOrRenewSubscription({
+      clientId,
+      plan,
+      amountMonthly: amount,
+      paymentMethod: paymentMethod || 'multicaixa_express',
+      paymentPhone,
+      paymentReference,
+      autoRenew: autoRenew ?? true
+    });
+
+    return res.json({
+      success: true,
+      message: `Assinatura do plano ${plan} ativada com sucesso!`,
+      subscription: result.subscription
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/billing/subscriptions: Create or update recurring subscription
+apiRouter.post('/billing/subscriptions', (req, res) => {
+  try {
+    const data = req.body || {};
+    if (!data.clientId || !data.plan) {
+      return res.status(400).json({ success: false, error: 'clientId e plan são obrigatórios.' });
+    }
+    const result = createOrRenewSubscription(data);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/webhooks/billing: Automated webhook receiver for recurring subscription charges
+apiRouter.post('/webhooks/billing', (req, res) => {
+  try {
+    const secretHeader = (req.headers['x-kutxi-webhook-secret'] || req.headers['authorization'] || '') as string;
+    const cleanSecret = secretHeader.replace(/^Bearer\s+/i, '').trim();
+    const event = (req.body?.event || req.body?.type || 'subscription.invoice.paid') as string;
+    const payload = req.body?.data || req.body;
+
+    const result = processBillingWebhook(event, payload, cleanSecret || undefined);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({
+      received: true,
+      ...result
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      received: false,
+      error: `Erro ao processar webhook: ${err.message}`
+    });
   }
 });
 

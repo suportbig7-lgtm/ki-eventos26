@@ -33,6 +33,7 @@ import AuthModal from './components/AuthModal';
 import SupabaseModal from './components/SupabaseModal';
 import FeatureGate from './components/FeatureGate';
 import ActivationRequestModal from './components/ActivationRequestModal';
+import { SaaSHealthAlarm } from './components/SaaSHealthAlarm';
 import { usePlanPermissions } from './hooks/usePlanPermissions';
 import { safeSetItem, safeGetItem, sanitizeClientsList, freeUpLocalStorageSpace } from './utils/storage';
 import { isSupabaseConfigured } from './services/supabase';
@@ -118,11 +119,14 @@ export default function App() {
   // --- AUTHENTICATION & MULTI-TENANT ACCOUNTS ---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
-      return true;
+    const params = new URLSearchParams(window.location.search);
+    // If opening an invite, public link or QR code, NEVER start authenticated!
+    if (params.get('invite') || params.get('convite') || params.get('token') || params.get('w') || params.get('casamento') || params.get('d') || params.get('data')) {
+      return false;
     }
-    if (localStorage.getItem('kutxi_remember_me') === 'true') {
-      return localStorage.getItem('kutxi_is_authenticated') === 'true';
+    // Only restore session if user explicitly checked "Lembrar de Mim"
+    if (localStorage.getItem('kutxi_remember_me') === 'true' && localStorage.getItem('kutxi_is_authenticated') === 'true') {
+      return true;
     }
     return false;
   });
@@ -136,7 +140,7 @@ export default function App() {
   const [isInviteLocked, setIsInviteLocked] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return Boolean(params.get('invite') || params.get('convite') || params.get('token'));
+      return Boolean(params.get('invite') || params.get('convite') || params.get('token') || params.get('w') || params.get('casamento') || params.get('d') || params.get('data'));
     }
     return false;
   });
@@ -144,7 +148,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('portaria')) return 'gatekeeper-portal';
-      if (params.get('invite') || params.get('convite') || params.get('token')) return 'public-invite';
+      if (params.get('invite') || params.get('convite') || params.get('token') || params.get('w') || params.get('casamento') || params.get('d') || params.get('data')) return 'public-invite';
     }
     return 'saas-landing';
   });
@@ -172,18 +176,26 @@ export default function App() {
     if (urlClientId) return urlClientId;
     const portaria = params.get('portaria');
     if (portaria && portaria !== 'true') return portaria;
-    return localStorage.getItem('kutxi_active_client_id') || 'client_1';
+    const inviteParam = params.get('invite') || params.get('convite') || params.get('token') || params.get('w');
+    if (inviteParam && inviteParam !== 'convite' && inviteParam !== 'true') {
+      const match = INITIAL_CLIENTS.find(c => c.id.toLowerCase() === inviteParam.toLowerCase() || c.config?.slug?.toLowerCase() === inviteParam.toLowerCase());
+      if (match) return match.id;
+    }
+    const savedActiveId = localStorage.getItem('kutxi_active_client_id');
+    if (savedActiveId && savedActiveId !== 'client_1') return savedActiveId;
+    return 'client_joao_alice';
   });
 
   const isInitialMount = useRef(true);
 
-  // Active User: defaults to empty string (never pre-selects superadmin)
+  // Active User: strictly empty on bare visit unless remember_me was true
   const [activeUser, setActiveUser] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
-    if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
-      return sessionStorage.getItem('kutxi_session_user') || '';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('invite') || params.get('convite') || params.get('token') || params.get('w') || params.get('casamento') || params.get('d') || params.get('data')) {
+      return '';
     }
-    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+    if (localStorage.getItem('kutxi_remember_me') === 'true' && localStorage.getItem('kutxi_is_authenticated') === 'true') {
       return localStorage.getItem('kutxi_active_user') || '';
     }
     return '';
@@ -191,10 +203,11 @@ export default function App() {
 
   const [activeUserRole, setActiveUserRole] = useState<'superadmin' | 'couple' | 'staff' | null>(() => {
     if (typeof window === 'undefined') return null;
-    if (sessionStorage.getItem('kutxi_session_authenticated') === 'true') {
-      return (sessionStorage.getItem('kutxi_session_role') as any) || null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('invite') || params.get('convite') || params.get('token') || params.get('w') || params.get('casamento') || params.get('d') || params.get('data')) {
+      return null;
     }
-    if (localStorage.getItem('kutxi_remember_me') === 'true') {
+    if (localStorage.getItem('kutxi_remember_me') === 'true' && localStorage.getItem('kutxi_is_authenticated') === 'true') {
       return (localStorage.getItem('kutxi_active_role') as any) || null;
     }
     return null;
@@ -286,10 +299,13 @@ export default function App() {
       const inviteParam = p.get('invite') || p.get('convite');
       const shortW = p.get('w') || p.get('casamento') || p.get('c');
       const cidParam = p.get('clientId') || p.get('portaria');
-      const targetSlugOrId = (inviteParam && inviteParam !== 'convite' && inviteParam !== 'true' ? inviteParam : '') ||
-                             (shortW && shortW !== 'true' ? shortW : '') ||
-                             (cidParam && cidParam !== 'system' && cidParam !== 'true' ? cidParam : '') ||
-                             localStorage.getItem('kutxi_active_client_id') || 'client_joao_alice';
+      let targetSlugOrId = (inviteParam && inviteParam !== 'convite' && inviteParam !== 'true' ? inviteParam : '') ||
+                           (shortW && shortW !== 'true' ? shortW : '') ||
+                           (cidParam && cidParam !== 'system' && cidParam !== 'true' ? cidParam : '') ||
+                           localStorage.getItem('kutxi_active_client_id') || 'client_joao_alice';
+      if (targetSlugOrId === 'client_1') {
+        targetSlugOrId = 'client_joao_alice';
+      }
 
       // Check INITIAL_CLIENTS
       const predefined = INITIAL_CLIENTS.find(c => 
@@ -297,7 +313,20 @@ export default function App() {
         c.id.toLowerCase() === targetSlugOrId.toLowerCase() ||
         (c.config?.id && c.config.id.toLowerCase() === targetSlugOrId.toLowerCase())
       );
-      if (predefined?.config) return predefined.config;
+      if (predefined?.config) {
+        const directSaved = localStorage.getItem(`kutxi_wedding_config_${targetSlugOrId}`);
+        if (directSaved) {
+          try {
+            const parsedSaved = JSON.parse(directSaved);
+            const savedTs = Number(parsedSaved.updatedAt) || 0;
+            const predefinedTs = Number(predefined.config.updatedAt) || 0;
+            if (savedTs > predefinedTs) {
+              return parsedSaved;
+            }
+          } catch (e) {}
+        }
+        return predefined.config;
+      }
 
       const directSaved = localStorage.getItem(`kutxi_wedding_config_${targetSlugOrId}`);
       if (directSaved) return JSON.parse(directSaved);
@@ -324,10 +353,11 @@ export default function App() {
     try {
       const p = new URLSearchParams(window.location.search);
       const cid = p.get('clientId') || p.get('w') || p.get('casamento') || p.get('c') || p.get('portaria') || 
-                   localStorage.getItem('kutxi_active_client_id') || 'client_1';
-      const saved = localStorage.getItem(`kutxi_guests_${cid}`);
+                   localStorage.getItem('kutxi_active_client_id') || 'client_joao_alice';
+      const resolvedCid = cid === 'client_1' ? 'client_joao_alice' : cid;
+      const saved = localStorage.getItem(`kutxi_guests_${resolvedCid}`);
       if (saved) return JSON.parse(saved);
-      if (cid === 'client_1') {
+      if (resolvedCid === 'client_1') {
         const savedGlobal = localStorage.getItem('kutxi_guests');
         if (savedGlobal) return JSON.parse(savedGlobal);
         return INITIAL_GUESTS;
@@ -350,7 +380,24 @@ export default function App() {
           list.forEach(c => {
             const existing = clientMap.get(c.id);
             if (existing) {
-              clientMap.set(c.id, { ...existing, ...c, config: c.config || existing.config });
+              const existingTs = Number(existing.config?.updatedAt) || Number(existing.updatedAt) || 0;
+              const savedTs = Number(c.config?.updatedAt) || Number(c.updatedAt) || 0;
+              if (existingTs >= savedTs) {
+                // Code in INITIAL_CLIENTS is newer than what was stored in localStorage
+                clientMap.set(c.id, {
+                  ...c,
+                  ...existing,
+                  config: existing.config || c.config,
+                  updatedAt: Math.max(existingTs, savedTs)
+                });
+              } else {
+                clientMap.set(c.id, {
+                  ...existing,
+                  ...c,
+                  config: c.config || existing.config,
+                  updatedAt: savedTs
+                });
+              }
             } else {
               clientMap.set(c.id, c);
             }
@@ -635,27 +682,63 @@ export default function App() {
     setActiveClientId(resolvedCid);
     safeSetItem('kutxi_active_client_id', resolvedCid);
 
-    // 1. Resolve Config
+    // 1. Resolve Config with strict tenant isolation
     let targetConfig = initialConfig;
+    const cleanLower = resolvedCid.toLowerCase();
+
+    // Priority 1: Check localStorage, but reject if leaking wrong names
     if (!targetConfig) {
       const direct = localStorage.getItem(`kutxi_wedding_config_${resolvedCid}`);
       if (direct) {
-        try { targetConfig = JSON.parse(direct); } catch (e) {}
+        try {
+          const parsed = JSON.parse(direct);
+          const groomL = (parsed.brideGroom?.groomName || '').toLowerCase();
+          if (cleanLower.includes('pedro') && groomL.includes('joão')) {
+            // Leaked João into Pedro! Ignore
+          } else if (cleanLower.includes('osvaldo') && groomL.includes('joão')) {
+            // Leaked João into Osvaldo! Ignore
+          } else if (cleanLower.includes('joao') && groomL.includes('pedro')) {
+            // Leaked Pedro into João! Ignore
+          } else {
+            targetConfig = parsed;
+          }
+        } catch (e) {}
       }
     }
+
+    // Priority 2: Check matching client in clients array
     if (!targetConfig && savedClients) {
       try {
         const list: ClientWeddingSaaS[] = JSON.parse(savedClients);
-        const match = list.find(c => c.id === resolvedCid || c.config?.id === resolvedCid);
-        if (match?.config) targetConfig = match.config;
+        const match = list.find(c => c.id.toLowerCase() === cleanLower || c.config?.id?.toLowerCase() === cleanLower || c.config?.slug?.toLowerCase() === cleanLower);
+        if (match?.config) {
+          const groomL = (match.config.brideGroom?.groomName || '').toLowerCase();
+          if (cleanLower.includes('pedro') && groomL.includes('joão')) {
+            // Ignore
+          } else if (cleanLower.includes('osvaldo') && groomL.includes('joão')) {
+            // Ignore
+          } else {
+            targetConfig = match.config;
+          }
+        }
       } catch (e) {}
     }
+
+    // Priority 3: Guaranteed predefined couple configs (Strict isolation!)
     if (!targetConfig) {
-      if (resolvedCid === 'client_1') {
-        const savedGlobal = localStorage.getItem('kutxi_wedding_config');
-        targetConfig = savedGlobal ? JSON.parse(savedGlobal) : INITIAL_WEDDING_CONFIG;
+      if (cleanLower.includes('pedro') || cleanLower.includes('pureza')) {
+        targetConfig = CONFIG_PEDRO_PUREZA;
+      } else if (cleanLower.includes('osvaldo') || cleanLower.includes('nicidia')) {
+        targetConfig = CONFIG_OSVALDO_NICIDIA;
+      } else if (cleanLower.includes('joao') || cleanLower.includes('alice') || cleanLower.includes('1793020883177')) {
+        targetConfig = CONFIG_JOAO_ALICE;
       } else {
-        targetConfig = createBlankWeddingConfig(resolvedCid);
+        const predefined = INITIAL_CLIENTS.find(c => c.id.toLowerCase() === cleanLower || c.config?.id?.toLowerCase() === cleanLower || c.config?.slug?.toLowerCase() === cleanLower);
+        if (predefined?.config) {
+          targetConfig = predefined.config;
+        } else {
+          targetConfig = createBlankWeddingConfig(resolvedCid);
+        }
       }
     }
 
@@ -835,9 +918,37 @@ export default function App() {
         );
       }
 
-      // If matched in clients, prefer official rich config
+      // If matched in clients, prefer official rich config with local storage & baseline check
       if (matchedClient) {
-        resolvedConfig = matchedClient.config || resolvedConfig;
+        let bestConfig = matchedClient.config || resolvedConfig;
+        try {
+          const stored = safeGetItem(`kutxi_wedding_config_${matchedClient.id}`) || 
+                         (matchedClient.config?.slug ? safeGetItem(`kutxi_wedding_config_${matchedClient.config.slug}`) : null);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed && (Number(parsed.updatedAt) || 0) >= (Number(bestConfig?.updatedAt) || 0)) {
+              bestConfig = parsed;
+            }
+          }
+        } catch (e) {}
+
+        // Guarantee full venue & story hydration for João & Alice profiles
+        if (matchedClient.id === 'client_joao_alice' || matchedClient.id === 'client_1793020883177' || (lookupToken && lookupToken.toLowerCase().includes('joao'))) {
+          bestConfig = {
+            ...CONFIG_JOAO_ALICE,
+            ...(bestConfig || {}),
+            venue: {
+              ...CONFIG_JOAO_ALICE.venue,
+              ...(bestConfig?.venue || {})
+            },
+            brideGroom: {
+              ...CONFIG_JOAO_ALICE.brideGroom,
+              ...(bestConfig?.brideGroom || {})
+            }
+          };
+        }
+
+        resolvedConfig = bestConfig;
         resolvedCid = matchedClient.id;
       }
 
@@ -937,8 +1048,20 @@ export default function App() {
   // --- HANDLERS ---
   const handleUpdateWeddingConfig = (updated: WeddingConfig) => {
     const now = Date.now();
+    const groom = updated.brideGroom?.groomName || 'Noivo';
+    const bride = updated.brideGroom?.brideName || 'Noiva';
+    
+    // Automatically tag each timeline event with the couple's identity
+    const taggedTimeline = (updated.timeline || []).map(t => ({
+      ...t,
+      clientId: t.clientId || activeClientId,
+      coupleName: t.coupleName || `${groom} & ${bride}`,
+      locationName: t.locationName || updated.venue?.ceremonyName || updated.venue?.churchName
+    }));
+
     const timestamped: WeddingConfig = {
       ...updated,
+      timeline: taggedTimeline,
       updatedAt: now
     };
     setWeddingConfig(timestamped);
@@ -1139,6 +1262,25 @@ export default function App() {
       return next;
     });
 
+    if (client.config) {
+      safeSetItem(`kutxi_wedding_config_${client.id}`, JSON.stringify(client.config));
+      if (client.config.slug) {
+        safeSetItem(`kutxi_wedding_config_${client.config.slug}`, JSON.stringify(client.config));
+      }
+      fetch(`/api/wedding-config/${client.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(client.config)
+      }).catch(() => {});
+      if (client.config.slug) {
+        fetch(`/api/wedding-config/${client.config.slug}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(client.config)
+        }).catch(() => {});
+      }
+    }
+
     let newAccountsList = userAccounts;
     let createdAccounts: UserAccount[] = [];
     if (accountsToAdd && accountsToAdd.length > 0) {
@@ -1158,7 +1300,10 @@ export default function App() {
     dbService.serverSync.push({
       clients: [client],
       userAccounts: createdAccounts,
-      weddingConfigs: client.config ? { [client.id]: client.config } : undefined
+      weddingConfigs: client.config ? { 
+        [client.id]: client.config,
+        ...(client.config.slug ? { [client.config.slug]: client.config } : {})
+      } : undefined
     }).catch(err => {
       console.warn('Background server sync error on add client:', err);
     });
@@ -1167,11 +1312,68 @@ export default function App() {
   };
 
   const handleUpdateClient = (updated: ClientWeddingSaaS, updatedAccounts?: { username: string; pass: string }[]) => {
-    setClients(prev => prev.map(c => c.id === updated.id ? updated : c));
+    setClients(prev => {
+      const next = prev.map(c => c.id === updated.id ? updated : c);
+      safeSetItem('kutxi_clients', JSON.stringify(sanitizeClientsList(next)));
+      return next;
+    });
+
     if (updated.config) {
-      handleUpdateWeddingConfig(updated.config);
+      const cfg = updated.config;
+      safeSetItem(`kutxi_wedding_config_${updated.id}`, JSON.stringify(cfg));
+      if (cfg.slug) {
+        safeSetItem(`kutxi_wedding_config_${cfg.slug}`, JSON.stringify(cfg));
+      }
+      if (activeClientId === updated.id || (activeClientId === 'client_1' && updated.id === 'client_joao_alice')) {
+        setWeddingConfig(cfg);
+        safeSetItem('kutxi_wedding_config', JSON.stringify(cfg));
+      }
+
+      fetch(`/api/wedding-config/${updated.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg)
+      }).catch(() => {});
+      if (cfg.slug) {
+        fetch(`/api/wedding-config/${cfg.slug}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cfg)
+        }).catch(() => {});
+      }
     }
-    addAuditLog('Super Admin', 'Licença Atualizada', `Casal "${updated.clientName}" atualizado. Status: ${updated.status}.`, 'security');
+
+    if (updatedAccounts && updatedAccounts.length > 0) {
+      setUserAccounts(prev => {
+        const next = [...prev];
+        updatedAccounts.forEach(acc => {
+          const idx = next.findIndex(a => a.username.toLowerCase() === acc.username.toLowerCase());
+          if (idx >= 0) {
+            next[idx] = { ...next[idx], pass: acc.pass, clientId: updated.id, clientName: updated.clientName };
+          } else {
+            next.push({
+              username: acc.username,
+              pass: acc.pass,
+              clientId: updated.id,
+              clientName: updated.clientName,
+              role: 'couple'
+            });
+          }
+        });
+        safeSetItem('kutxi_user_accounts', JSON.stringify(next));
+        return next;
+      });
+    }
+
+    dbService.serverSync.push({
+      clients: [updated],
+      weddingConfigs: updated.config ? { 
+        [updated.id]: updated.config,
+        ...(updated.config.slug ? { [updated.config.slug]: updated.config } : {})
+      } : undefined
+    }).catch(() => {});
+
+    addAuditLog('Super Admin', 'Licença e Configuração Atualizadas', `Casal "${updated.clientName}" atualizado com sucesso.`, 'security');
   };
 
   const handleDeleteClient = (clientId: string) => {
@@ -1251,6 +1453,9 @@ export default function App() {
       >
         Pular para o conteúdo principal
       </a>
+
+      {/* SaaS Uptime and Health Monitoring Downtime Alarm */}
+      <SaaSHealthAlarm />
 
       {/* Offline sync banner */}
       <AnimatePresence>
@@ -1896,6 +2101,7 @@ export default function App() {
                   guests={guests}
                   config={weddingConfig}
                   planName={permissions.isTrial ? 'Plano Grátis' : `Plano ${permissions.currentPlan}`}
+                  client={currentClient}
                   onUpdateConfig={handleUpdateWeddingConfig}
                   onNavigateTab={tab => setClientTab(tab as ClientTab)}
                   onOpenPublicInvite={() => setPersona('public-invite')}
@@ -2059,6 +2265,7 @@ export default function App() {
           setActiveUser(username);
           setActiveUserRole((role as any) || (username === 'superadmin' ? 'superadmin' : 'couple'));
           setActiveClientId(clientId);
+          switchActiveTenant(clientId);
 
           if (rememberMe) {
             safeSetItem('kutxi_remember_me', 'true');
@@ -2067,19 +2274,16 @@ export default function App() {
             safeSetItem('kutxi_active_role', (role as string) || (username === 'superadmin' ? 'superadmin' : 'couple'));
             safeSetItem('kutxi_active_client_id', clientId);
           } else {
-            // Strictly do NOT save auth data to localStorage if rememberMe was not checked
+            // Strictly do NOT save auth data to browser storage if rememberMe was not checked
             try {
               localStorage.removeItem('kutxi_remember_me');
               localStorage.removeItem('kutxi_is_authenticated');
               localStorage.removeItem('kutxi_active_user');
               localStorage.removeItem('kutxi_active_role');
-            } catch (e) {}
-
-            try {
-              sessionStorage.setItem('kutxi_session_authenticated', 'true');
-              sessionStorage.setItem('kutxi_session_user', username);
-              sessionStorage.setItem('kutxi_session_role', (role as string) || (username === 'superadmin' ? 'superadmin' : 'couple'));
-              sessionStorage.setItem('kutxi_session_client_id', clientId);
+              sessionStorage.removeItem('kutxi_session_authenticated');
+              sessionStorage.removeItem('kutxi_session_user');
+              sessionStorage.removeItem('kutxi_session_role');
+              sessionStorage.removeItem('kutxi_session_client_id');
             } catch (e) {}
           }
           

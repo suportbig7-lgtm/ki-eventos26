@@ -95,6 +95,9 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       title: 'Cerimónia Civil (Registo)',
       description: 'Celebração civil na Conservatória do Registo Civil com os familiares e testemunhas.',
       icon: 'FileText',
+      clientId: 'client_1',
+      coupleName: 'Gabriel & Sofia',
+      locationName: 'Conservatória do Registo Civil'
     },
     {
       id: 't2',
@@ -102,6 +105,9 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       title: 'Cerimónia Religiosa (Igreja)',
       description: 'Bênção matrimonial solene e troca de alianças na Igreja Nossa Senhora do Carmo.',
       icon: 'Heart',
+      clientId: 'client_1',
+      coupleName: 'Gabriel & Sofia',
+      locationName: 'Igreja Nossa Senhora do Carmo'
     },
     {
       id: 't3',
@@ -109,6 +115,9 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       title: 'Copo de Água & Recepção',
       description: 'Coquetel de boas-vindas, banquete nupcial gastronómico e brinde dos noivos.',
       icon: 'Utensils',
+      clientId: 'client_1',
+      coupleName: 'Gabriel & Sofia',
+      locationName: 'Espaço Jardins de Talatona'
     },
     {
       id: 't4',
@@ -116,6 +125,9 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       title: 'Corte do Bolo & Festa',
       description: 'Primeira dança dos noivos e abertura oficial da pista de dança com DJ.',
       icon: 'Music',
+      clientId: 'client_1',
+      coupleName: 'Gabriel & Sofia',
+      locationName: 'Espaço Jardins de Talatona'
     }
   ],
   venue: {
@@ -368,28 +380,40 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
       time: '10:30',
       title: 'Cerimónia Civil (Registo)',
       description: 'Assinatura oficial na Conservatória do Registo Civil, Rua Rainha Ginga, Luanda.',
-      icon: 'FileText'
+      icon: 'FileText',
+      clientId: 'client_joao_alice',
+      coupleName: 'João & Alice',
+      locationName: 'Conservatória do Registo Civil'
     },
     {
       id: 't2_ja',
       time: '16:00',
       title: 'Celebração Religiosa',
       description: 'Bênção nupcial na Igreja Metodista Unida Gaspar Adão De Almeida.',
-      icon: 'Heart'
+      icon: 'Heart',
+      clientId: 'client_joao_alice',
+      coupleName: 'João & Alice',
+      locationName: 'Igreja Metodista Unida Gaspar Adão De Almeida'
     },
     {
       id: 't3_ja',
       time: '18:00',
       title: 'Copo de Água & Recepção',
       description: 'Jantar e celebração na Igreja Metodista Unida Gaspar Adão De Almeida.',
-      icon: 'UtensilsCrossed'
+      icon: 'UtensilsCrossed',
+      clientId: 'client_joao_alice',
+      coupleName: 'João & Alice',
+      locationName: 'Igreja Metodista Unida Gaspar Adão De Almeida'
     },
     {
       id: 't4_ja',
       time: '21:30',
       title: 'Abertura da Pista & Festa',
       description: 'Música, celebração e momentos inesquecíveis.',
-      icon: 'Music'
+      icon: 'Music',
+      clientId: 'client_joao_alice',
+      coupleName: 'João & Alice',
+      locationName: 'Igreja Metodista Unida Gaspar Adão De Almeida'
     }
   ],
   venue: {
@@ -533,9 +557,9 @@ export const CONFIG_PEDRO_PUREZA: WeddingConfig = {
   storyTitle: 'Nossa História de Amor',
   storyContent: 'Uma linda amizade que floresceu com os anos e se tornou um amor inabalável. Convidamos você para celebrar conosco este grande dia!',
   timeline: [
-    { id: 't1_pp', time: '11:00', title: 'Registo Civil', description: 'Assinatura civil oficial.', icon: 'FileText' },
-    { id: 't2_pp', time: '15:00', title: 'Bênção Matrimonial', description: 'Cerimônia na Paróquia Sagrada Família.', icon: 'Heart' },
-    { id: 't3_pp', time: '17:30', title: 'Recepção dos Convidados', description: 'Brinde e jantar no Salão Luanda Miramar.', icon: 'UtensilsCrossed' }
+    { id: 't1_pp', time: '11:00', title: 'Registo Civil', description: 'Assinatura civil oficial.', icon: 'FileText', clientId: 'client_pedro_pureza', coupleName: 'Pedro & Pureza', locationName: 'Conservatória do Registo Civil' },
+    { id: 't2_pp', time: '15:00', title: 'Bênção Matrimonial', description: 'Cerimônia na Paróquia Sagrada Família.', icon: 'Heart', clientId: 'client_pedro_pureza', coupleName: 'Pedro & Pureza', locationName: 'Paróquia Sagrada Família' },
+    { id: 't3_pp', time: '17:30', title: 'Recepção dos Convidados', description: 'Brinde e jantar no Salão Luanda Miramar.', icon: 'UtensilsCrossed', clientId: 'client_pedro_pureza', coupleName: 'Pedro & Pureza', locationName: 'Salão Luanda Miramar' }
   ],
   venue: {
     ceremonyName: 'Paróquia Sagrada Família',
@@ -633,9 +657,9 @@ export const CONFIG_OSVALDO_NICIDIA: WeddingConfig = {
   storyTitle: 'Nossa História de Amor',
   storyContent: 'O destino uniu nossos caminhos sob a luz de Luanda. Hoje damos o passo mais importante das nossas vidas rumo à eternidade.',
   timeline: [
-    { id: 't1_on', time: '10:00', title: 'Registo Civil', description: 'Celebração civil na Conservatória.', icon: 'FileText' },
-    { id: 't2_on', time: '16:00', title: 'Celebração Religiosa', description: 'Bênção das alianças na Igreja da Sagrada Família.', icon: 'Heart' },
-    { id: 't3_on', time: '18:30', title: 'Banquete & Recepção', description: 'Jantar de gala no Centro de Convenções de Talatona.', icon: 'UtensilsCrossed' }
+    { id: 't1_on', time: '10:00', title: 'Registo Civil', description: 'Celebração civil na Conservatória.', icon: 'FileText', clientId: 'client_osvaldo_nicidia', coupleName: 'Osvaldo & Nicidia', locationName: 'Conservatória do Registo Civil' },
+    { id: 't2_on', time: '16:00', title: 'Celebração Religiosa', description: 'Bênção das alianças na Igreja da Sagrada Família.', icon: 'Heart', clientId: 'client_osvaldo_nicidia', coupleName: 'Osvaldo & Nicidia', locationName: 'Igreja da Sagrada Família' },
+    { id: 't3_on', time: '18:30', title: 'Banquete & Recepção', description: 'Jantar de gala no Centro de Convenções de Talatona.', icon: 'UtensilsCrossed', clientId: 'client_osvaldo_nicidia', coupleName: 'Osvaldo & Nicidia', locationName: 'Centro de Convenções de Talatona' }
   ],
   venue: {
     ceremonyName: 'Igreja da Sagrada Família',

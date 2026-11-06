@@ -334,11 +334,51 @@ export function decodeWeddingPayload(payloadStr: string): WeddingConfig | null {
 }
 
 /**
+ * Resolves the canonical public production origin.
+ * Prevents Vercel Preview Deployment URLs (which trigger Vercel SSO login walls on recipients)
+ * or local dev URLs from being embedded into invitation links shared with guests.
+ */
+export function getPublicCanonicalOrigin(customBase?: string): string {
+  const envUrl = typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUBLIC_APP_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('http')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  const raw = (customBase || (typeof window !== 'undefined' ? window.location.origin : '')).trim().replace(/\/+$/, '');
+  if (!raw) {
+    return 'https://ki-eventos26.vercel.app';
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+
+    // If on a Vercel preview deployment (e.g. ki-eventos26-1kv8fdgmg-kieventos.vercel.app)
+    // normalize to the public canonical production domain so recipients don't hit the Vercel SSO login page.
+    if (host.endsWith('.vercel.app')) {
+      if (host !== 'ki-eventos26.vercel.app' && (host.startsWith('ki-eventos26-') || host.includes('-git-') || host.split('.').length === 3)) {
+        return 'https://ki-eventos26.vercel.app';
+      }
+      return parsed.origin;
+    }
+
+    // In local dev or cloud sandbox environments, normalize to production domain for sharable links
+    if (host.includes('localhost') || host.includes('127.0.0.1') || host.endsWith('.run.app')) {
+      return 'https://ki-eventos26.vercel.app';
+    }
+
+    return parsed.origin;
+  } catch (e) {
+    return 'https://ki-eventos26.vercel.app';
+  }
+}
+
+/**
  * Builds a clean, portable invitation URL utilizing friendly slugs and hashes.
  * Format: https://domain/?invite=joao-alice (with optional compact payload for cross-domain resilience)
  */
 export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string): string {
-  const origin = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+  const origin = getPublicCanonicalOrigin(baseUrl);
   let resolvedId = config.clientId || config.id || 'client_joao_alice';
   if (resolvedId === 'system') {
     resolvedId = 'client_joao_alice';
@@ -359,7 +399,7 @@ export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string)
  * Builds a clean, friendly Gatekeeper (Portaria) URL.
  */
 export function buildPortablePortariaLink(config: WeddingConfig, baseUrl?: string): string {
-  const origin = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+  const origin = getPublicCanonicalOrigin(baseUrl);
   let targetCid = config.clientId || config.id || 'client_joao_alice';
   if (targetCid === 'system') targetCid = 'client_joao_alice';
   const slug = config.slug || targetCid.replace(/^client_/, '');
