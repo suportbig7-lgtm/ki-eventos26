@@ -77,7 +77,7 @@
       "clientEmail": "novo@kutxi.ao",
       "weddingDate": "2027-04-22",
       "plan": "Premium",
-      "status": "Active",
+      "status": "Suspended",
       "revenue": 65000,
       "config": {
         "id": "w_client_novo",
@@ -90,13 +90,13 @@
           "groomFullName": "Novo",
           "groomBio": "Apaixonado pelo mar de Luanda e por construir uma vida repleta de cumplicidade e honra ao lado da Sofia.",
           "groomParents": "Sr. Manuel dos Santos & Sra. Rosa dos Santos",
-          "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
+          "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
           "brideName": "Noiva",
           "brideFullName": "Noiva",
           "brideBio": "Arquiteta de interiores com paixão por arte, design e momentos inesquecíveis em família.",
           "brideParents": "Sr. Alberto de Oliveira & Sra. Teresa de Oliveira",
-          "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600",
-          "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+          "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+          "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
         },
         "date": "2027-04-22T20:34:50.407Z",
         "storyTitle": "",
@@ -143,9 +143,16 @@
           "registryItems": []
         },
         "media": {
-          "coverImage": "",
-          "storyImage": "",
-          "photos": []
+          "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
+          "photos": [
+            "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+            "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+            "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+            "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+            "/assets/aistudio/capa_eeb23baf.jpeg",
+            "/assets/aistudio/nossa_historia_0790376f.jpeg"
+          ]
         },
         "accomTrans": {
           "accommodationNotes": "",
@@ -204,7 +211,9 @@
         "allowCollectiveAlbum": true,
         "allowGatekeeperPortal": true,
         "maxGuests": 9999
-      }
+      },
+      "accessRevoked": true,
+      "updatedAt": 1794305595016
     },
     {
       "id": "client_osvaldo_nicidia",
@@ -226,13 +235,13 @@
           "groomFullName": "Osvaldo Vagabo",
           "groomBio": "O homem mais feliz por ter encontrado na Nicidia a sua eterna companheira e parceira de vida.",
           "groomParents": "Sr. Gaspar Vagabo & Sra. Maria Vagabo",
-          "groomPhoto": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=800",
+          "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
           "brideName": "Nicidia",
           "brideFullName": "Nicidia Manuel",
           "brideBio": "Com imenso amor no coração e a bênção de Deus para o nosso matrimônio.",
           "brideParents": "Sr. Pedro Manuel & Sra. Esperança Manuel",
-          "bridePhoto": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800",
-          "couplePhoto": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200"
+          "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+          "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
         },
         "date": "2027-07-25T16:00:00",
         "storyTitle": "Nossa História de Amor",
@@ -243,30 +252,21 @@
             "time": "10:00",
             "title": "Registo Civil",
             "description": "Celebração civil na Conservatória.",
-            "icon": "FileText",
-            "clientId": "client_osvaldo_nicidia",
-            "coupleName": "Osvaldo & Nicidia",
-            "locationName": "Conservatória do Registo Civil"
+            "icon": "FileText"
           },
           {
             "id": "t2_on",
             "time": "16:00",
             "title": "Celebração Religiosa",
             "description": "Bênção das alianças na Igreja da Sagrada Família.",
-            "icon": "Heart",
-            "clientId": "client_osvaldo_nicidia",
-            "coupleName": "Osvaldo & Nicidia",
-            "locationName": "Igreja da Sagrada Família"
+            "icon": "Heart"
           },
           {
             "id": "t3_on",
             "time": "18:30",
             "title": "Banquete & Recepção",
             "description": "Jantar de gala no Centro de Convenções de Talatona.",
-            "icon": "UtensilsCrossed",
-            "clientId": "client_osvaldo_nicidia",
-            "coupleName": "Osvaldo & Nicidia",
-            "locationName": "Centro de Convenções de Talatona"
+            "icon": "UtensilsCrossed"
           }
         ],
         "venue": {
@@ -328,11 +328,15 @@
           ]
         },
         "media": {
-          "coverImage": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1600",
-          "storyImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
+          "coverImage": "/assets/aistudio/capa_eeb23baf.jpeg",
+          "storyImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
           "photos": [
-            "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"
+            "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+            "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+            "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+            "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+            "/assets/aistudio/capa_eeb23baf.jpeg",
+            "/assets/aistudio/nossa_historia_0790376f.jpeg"
           ]
         },
         "accomTrans": {
@@ -368,7 +372,7 @@
       "guestCount": 120,
       "rsvpsReceived": 85,
       "createdAt": "2026-10-20",
-      "updatedAt": 1793010000000,
+      "updatedAt": 1794305595016,
       "features": {
         "maxGuests": 9999,
         "allowWhatsAppAutomation": true,
@@ -383,7 +387,7 @@
       "weddingDate": "2027-04-22",
       "plan": "Basic",
       "status": "Active",
-      "revenue": 70000,
+      "revenue": 35000,
       "config": {
         "id": "client_pedro_pureza",
         "slug": "pedro-pureza",
@@ -396,13 +400,13 @@
           "groomFullName": "Pedro Miguel",
           "groomBio": "Um coração apaixonado e grato por construir uma linda família ao lado da Pureza.",
           "groomParents": "Sr. António Miguel & Sra. Joana Miguel",
-          "groomPhoto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800",
+          "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
           "brideName": "Pureza",
           "brideFullName": "Pureza Kiala",
           "brideBio": "Vivendo a realização de um sonho de amor, respeito e cumplicidade com o Pedro.",
           "brideParents": "Sr. Bernardo Kiala & Sra. Rosa Kiala",
-          "bridePhoto": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-          "couplePhoto": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200"
+          "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+          "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
         },
         "date": "2027-04-22T15:00:00",
         "storyTitle": "Nossa História de Amor",
@@ -413,30 +417,21 @@
             "time": "11:00",
             "title": "Registo Civil",
             "description": "Assinatura civil oficial.",
-            "icon": "FileText",
-            "clientId": "client_pedro_pureza",
-            "coupleName": "Pedro & Pureza",
-            "locationName": "Conservatória do Registo Civil"
+            "icon": "FileText"
           },
           {
             "id": "t2_pp",
             "time": "15:00",
             "title": "Bênção Matrimonial",
             "description": "Cerimônia na Paróquia Sagrada Família.",
-            "icon": "Heart",
-            "clientId": "client_pedro_pureza",
-            "coupleName": "Pedro & Pureza",
-            "locationName": "Paróquia Sagrada Família"
+            "icon": "Heart"
           },
           {
             "id": "t3_pp",
             "time": "17:30",
             "title": "Recepção dos Convidados",
             "description": "Brinde e jantar no Salão Luanda Miramar.",
-            "icon": "UtensilsCrossed",
-            "clientId": "client_pedro_pureza",
-            "coupleName": "Pedro & Pureza",
-            "locationName": "Salão Luanda Miramar"
+            "icon": "UtensilsCrossed"
           }
         ],
         "venue": {
@@ -498,11 +493,15 @@
           ]
         },
         "media": {
-          "coverImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600",
-          "storyImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
+          "coverImage": "/assets/aistudio/capa_eeb23baf.jpeg",
+          "storyImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
           "photos": [
-            "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"
+            "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+            "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+            "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+            "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+            "/assets/aistudio/capa_eeb23baf.jpeg",
+            "/assets/aistudio/nossa_historia_0790376f.jpeg"
           ]
         },
         "accomTrans": {
@@ -538,12 +537,12 @@
       "guestCount": 65,
       "rsvpsReceived": 42,
       "createdAt": "2026-10-21",
-      "updatedAt": 1793015000000,
+      "updatedAt": 1794305595016,
       "features": {
+        "maxGuests": 150,
         "allowWhatsAppAutomation": false,
-        "allowCollectiveAlbum": true,
-        "allowGatekeeperPortal": false,
-        "maxGuests": 150
+        "allowCollectiveAlbum": false,
+        "allowGatekeeperPortal": false
       },
       "accessRevoked": false
     },
@@ -559,7 +558,7 @@
         "id": "client_joao_alice",
         "slug": "joao-alice",
         "clientId": "client_joao_alice",
-        "updatedAt": 1793020883177,
+        "updatedAt": 1794305569635,
         "isFirstLogin": false,
         "isNewProfile": false,
         "onboardingCompleted": true,
@@ -568,13 +567,13 @@
           "groomFullName": "João dos Santos",
           "groomBio": "Apaixonado pela vida e grato por celebrar este momento tão especial com você.",
           "groomParents": "Sr. Mateus dos Santos & Sra. Helena dos Santos",
-          "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+          "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
           "brideName": "Alice",
           "brideFullName": "Alice de Oliveira",
           "brideBio": "Ansiosa por dizer o \"Sim\" e iniciar o capítulo mais bonito da nossa caminhada.",
           "brideParents": "Sr. Domingos de Oliveira & Sra. Maria de Oliveira",
-          "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
-          "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+          "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+          "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
         },
         "date": "2026-11-14T16:00:00",
         "storyTitle": "Nossa História de Amor",
@@ -585,40 +584,28 @@
             "time": "10:30",
             "title": "Cerimónia Civil (Registo)",
             "description": "Assinatura oficial na Conservatória do Registo Civil, Rua Rainha Ginga, Luanda.",
-            "icon": "FileText",
-            "clientId": "client_joao_alice",
-            "coupleName": "João & Alice",
-            "locationName": "Conservatória do Registo Civil"
+            "icon": "FileText"
           },
           {
             "id": "t2_ja",
             "time": "16:00",
             "title": "Celebração Religiosa",
             "description": "Bênção nupcial na Igreja Metodista Unida Gaspar Adão De Almeida.",
-            "icon": "Heart",
-            "clientId": "client_joao_alice",
-            "coupleName": "João & Alice",
-            "locationName": "Igreja Metodista Unida Gaspar Adão De Almeida"
+            "icon": "Heart"
           },
           {
             "id": "t3_ja",
             "time": "18:00",
             "title": "Copo de Água & Recepção",
             "description": "Jantar e celebração na Igreja Metodista Unida Gaspar Adão De Almeida.",
-            "icon": "UtensilsCrossed",
-            "clientId": "client_joao_alice",
-            "coupleName": "João & Alice",
-            "locationName": "Igreja Metodista Unida Gaspar Adão De Almeida"
+            "icon": "UtensilsCrossed"
           },
           {
             "id": "t4_ja",
             "time": "21:30",
             "title": "Abertura da Pista & Festa",
             "description": "Música, celebração e momentos inesquecíveis.",
-            "icon": "Music",
-            "clientId": "client_joao_alice",
-            "coupleName": "João & Alice",
-            "locationName": "Igreja Metodista Unida Gaspar Adão De Almeida"
+            "icon": "Music"
           }
         ],
         "venue": {
@@ -715,13 +702,15 @@
           ]
         },
         "media": {
-          "coverImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600",
-          "storyImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
+          "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
           "photos": [
-            "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800"
+            "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+            "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+            "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+            "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+            "/assets/aistudio/capa_eeb23baf.jpeg",
+            "/assets/aistudio/nossa_historia_0790376f.jpeg"
           ]
         },
         "accomTrans": {
@@ -795,7 +784,7 @@
       "guestCount": 180,
       "rsvpsReceived": 140,
       "createdAt": "2026-10-22",
-      "updatedAt": 1793020883177,
+      "updatedAt": 1794305595016,
       "features": {
         "maxGuests": 9999,
         "allowWhatsAppAutomation": true,
@@ -824,13 +813,13 @@
           "groomFullName": "João dos Santos",
           "groomBio": "Apaixonado pela vida e grato por celebrar este momento tão especial com você.",
           "groomParents": "Sr. Mateus dos Santos & Sra. Helena dos Santos",
-          "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+          "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
           "brideName": "Alice",
           "brideFullName": "Alice de Oliveira",
           "brideBio": "Ansiosa por dizer o \"Sim\" e iniciar o capítulo mais bonito da nossa caminhada.",
           "brideParents": "Sr. Domingos de Oliveira & Sra. Maria de Oliveira",
-          "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
-          "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+          "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+          "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
         },
         "date": "2026-11-14T16:00:00",
         "storyTitle": "Nossa História de Amor",
@@ -971,13 +960,15 @@
           ]
         },
         "media": {
-          "coverImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600",
-          "storyImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
+          "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
           "photos": [
-            "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-            "https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800"
+            "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+            "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+            "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+            "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+            "/assets/aistudio/capa_eeb23baf.jpeg",
+            "/assets/aistudio/nossa_historia_0790376f.jpeg"
           ]
         },
         "accomTrans": {
@@ -1051,7 +1042,7 @@
       "guestCount": 180,
       "rsvpsReceived": 140,
       "createdAt": "2026-10-22",
-      "updatedAt": 1793020883177,
+      "updatedAt": 1794305595016,
       "features": {
         "maxGuests": 9999,
         "allowWhatsAppAutomation": true,
@@ -1071,13 +1062,13 @@
         "groomFullName": "Gabriel Pureza dos Santos",
         "groomBio": "Apaixonado pelo mar de Luanda e por construir uma vida repleta de cumplicidade e honra ao lado da Sofia.",
         "groomParents": "Sr. Manuel dos Santos & Sra. Rosa dos Santos",
-        "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Sofia",
         "brideFullName": "Sofia Kiala de Oliveira",
         "brideBio": "Arquiteta de interiores com paixão por arte, design e momentos inesquecíveis em família.",
         "brideParents": "Sr. Alberto de Oliveira & Sra. Teresa de Oliveira",
-        "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600",
-        "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2026-10-25T16:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -1137,8 +1128,12 @@
         "capacity": 250,
         "hasParking": true,
         "photos": [
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "dressCode": {
@@ -1229,7 +1224,7 @@
                 "name": "Padrinho Lucas Vance",
                 "amount": 120000,
                 "date": "13/10/2026",
-                "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150",
+                "avatarUrl": "/assets/aistudio/noivo_cb7dee44.jpeg",
                 "message": "Parabéns ao lindo casal! Já estou ansioso pelo café na casa nova."
               },
               {
@@ -1237,7 +1232,7 @@
                 "name": "Tia Eleonora",
                 "amount": 100000,
                 "date": "14/10/2026",
-                "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
+                "avatarUrl": "/assets/aistudio/noivaa_f3d108c5.jpeg",
                 "message": "Que Deus derrame bênçãos sem medida sobre essa união sagrada."
               }
             ]
@@ -1275,15 +1270,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+        "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -1370,7 +1365,7 @@
           "date": "14 de Outubro de 2026",
           "giftName": "Máquina de Café Espresso DeLonghi",
           "amountContributed": 120000,
-          "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150"
+          "avatarUrl": "/assets/aistudio/noivo_cb7dee44.jpeg"
         },
         {
           "id": "m3",
@@ -1379,7 +1374,7 @@
           "date": "13 de Outubro de 2026",
           "giftName": "Máquina de Café Espresso DeLonghi",
           "amountContributed": 100000,
-          "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150"
+          "avatarUrl": "/assets/aistudio/noivaa_f3d108c5.jpeg"
         }
       ]
     },
@@ -1394,13 +1389,13 @@
         "groomFullName": "Novo",
         "groomBio": "Apaixonado pelo mar de Luanda e por construir uma vida repleta de cumplicidade e honra ao lado da Sofia.",
         "groomParents": "Sr. Manuel dos Santos & Sra. Rosa dos Santos",
-        "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Noiva",
         "brideFullName": "Noiva",
         "brideBio": "Arquiteta de interiores com paixão por arte, design e momentos inesquecíveis em família.",
         "brideParents": "Sr. Alberto de Oliveira & Sra. Teresa de Oliveira",
-        "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600",
-        "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2027-04-22T20:34:50.407Z",
       "storyTitle": "",
@@ -1447,9 +1442,16 @@
         "registryItems": []
       },
       "media": {
-        "coverImage": "",
-        "storyImage": "",
-        "photos": []
+        "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+        "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
+        "photos": [
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
+        ]
       },
       "accomTrans": {
         "accommodationNotes": "",
@@ -1498,7 +1500,8 @@
           "urgency": "media"
         }
       ],
-      "muralComments": []
+      "muralComments": [],
+      "updatedAt": 1794305595016
     },
     "client_osvaldo_nicidia": {
       "id": "client_osvaldo_nicidia",
@@ -1512,13 +1515,13 @@
         "groomFullName": "Osvaldo Vagabo",
         "groomBio": "O homem mais feliz por ter encontrado na Nicidia a sua eterna companheira e parceira de vida.",
         "groomParents": "Sr. Gaspar Vagabo & Sra. Maria Vagabo",
-        "groomPhoto": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Nicidia",
         "brideFullName": "Nicidia Manuel",
         "brideBio": "Com imenso amor no coração e a bênção de Deus para o nosso matrimônio.",
         "brideParents": "Sr. Pedro Manuel & Sra. Esperança Manuel",
-        "bridePhoto": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2027-07-25T16:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -1529,30 +1532,21 @@
           "time": "10:00",
           "title": "Registo Civil",
           "description": "Celebração civil na Conservatória.",
-          "icon": "FileText",
-          "clientId": "client_osvaldo_nicidia",
-          "coupleName": "Osvaldo & Nicidia",
-          "locationName": "Conservatória do Registo Civil"
+          "icon": "FileText"
         },
         {
           "id": "t2_on",
           "time": "16:00",
           "title": "Celebração Religiosa",
           "description": "Bênção das alianças na Igreja da Sagrada Família.",
-          "icon": "Heart",
-          "clientId": "client_osvaldo_nicidia",
-          "coupleName": "Osvaldo & Nicidia",
-          "locationName": "Igreja da Sagrada Família"
+          "icon": "Heart"
         },
         {
           "id": "t3_on",
           "time": "18:30",
           "title": "Banquete & Recepção",
           "description": "Jantar de gala no Centro de Convenções de Talatona.",
-          "icon": "UtensilsCrossed",
-          "clientId": "client_osvaldo_nicidia",
-          "coupleName": "Osvaldo & Nicidia",
-          "locationName": "Centro de Convenções de Talatona"
+          "icon": "UtensilsCrossed"
         }
       ],
       "venue": {
@@ -1614,11 +1608,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/capa_eeb23baf.jpeg",
+        "storyImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -1649,7 +1647,8 @@
       },
       "isActive": true,
       "todoList": [],
-      "muralComments": []
+      "muralComments": [],
+      "updatedAt": 1794305595016
     },
     "osvaldo-nicidia": {
       "id": "client_osvaldo_nicidia",
@@ -1663,13 +1662,13 @@
         "groomFullName": "Osvaldo Vagabo",
         "groomBio": "O homem mais feliz por ter encontrado na Nicidia a sua eterna companheira e parceira de vida.",
         "groomParents": "Sr. Gaspar Vagabo & Sra. Maria Vagabo",
-        "groomPhoto": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Nicidia",
         "brideFullName": "Nicidia Manuel",
         "brideBio": "Com imenso amor no coração e a bênção de Deus para o nosso matrimônio.",
         "brideParents": "Sr. Pedro Manuel & Sra. Esperança Manuel",
-        "bridePhoto": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2027-07-25T16:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -1765,11 +1764,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/capa_eeb23baf.jpeg",
+        "storyImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -1814,13 +1817,13 @@
         "groomFullName": "Pedro Miguel",
         "groomBio": "Um coração apaixonado e grato por construir uma linda família ao lado da Pureza.",
         "groomParents": "Sr. António Miguel & Sra. Joana Miguel",
-        "groomPhoto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Pureza",
         "brideFullName": "Pureza Kiala",
         "brideBio": "Vivendo a realização de um sonho de amor, respeito e cumplicidade com o Pedro.",
         "brideParents": "Sr. Bernardo Kiala & Sra. Rosa Kiala",
-        "bridePhoto": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2027-04-22T15:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -1831,30 +1834,21 @@
           "time": "11:00",
           "title": "Registo Civil",
           "description": "Assinatura civil oficial.",
-          "icon": "FileText",
-          "clientId": "client_pedro_pureza",
-          "coupleName": "Pedro & Pureza",
-          "locationName": "Conservatória do Registo Civil"
+          "icon": "FileText"
         },
         {
           "id": "t2_pp",
           "time": "15:00",
           "title": "Bênção Matrimonial",
           "description": "Cerimônia na Paróquia Sagrada Família.",
-          "icon": "Heart",
-          "clientId": "client_pedro_pureza",
-          "coupleName": "Pedro & Pureza",
-          "locationName": "Paróquia Sagrada Família"
+          "icon": "Heart"
         },
         {
           "id": "t3_pp",
           "time": "17:30",
           "title": "Recepção dos Convidados",
           "description": "Brinde e jantar no Salão Luanda Miramar.",
-          "icon": "UtensilsCrossed",
-          "clientId": "client_pedro_pureza",
-          "coupleName": "Pedro & Pureza",
-          "locationName": "Salão Luanda Miramar"
+          "icon": "UtensilsCrossed"
         }
       ],
       "venue": {
@@ -1916,11 +1910,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/capa_eeb23baf.jpeg",
+        "storyImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -1951,7 +1949,8 @@
       },
       "isActive": true,
       "todoList": [],
-      "muralComments": []
+      "muralComments": [],
+      "updatedAt": 1794305595016
     },
     "pedro-pureza": {
       "id": "client_pedro_pureza",
@@ -1965,13 +1964,13 @@
         "groomFullName": "Pedro Miguel",
         "groomBio": "Um coração apaixonado e grato por construir uma linda família ao lado da Pureza.",
         "groomParents": "Sr. António Miguel & Sra. Joana Miguel",
-        "groomPhoto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Pureza",
         "brideFullName": "Pureza Kiala",
         "brideBio": "Vivendo a realização de um sonho de amor, respeito e cumplicidade com o Pedro.",
         "brideParents": "Sr. Bernardo Kiala & Sra. Rosa Kiala",
-        "bridePhoto": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2027-04-22T15:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -2067,11 +2066,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/capa_eeb23baf.jpeg",
+        "storyImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -2108,7 +2111,7 @@
       "id": "client_joao_alice",
       "slug": "joao-alice",
       "clientId": "client_joao_alice",
-      "updatedAt": 1793020883177,
+      "updatedAt": 1794305595016,
       "isFirstLogin": false,
       "isNewProfile": false,
       "onboardingCompleted": true,
@@ -2117,13 +2120,13 @@
         "groomFullName": "João dos Santos",
         "groomBio": "Apaixonado pela vida e grato por celebrar este momento tão especial com você.",
         "groomParents": "Sr. Mateus dos Santos & Sra. Helena dos Santos",
-        "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Alice",
         "brideFullName": "Alice de Oliveira",
         "brideBio": "Ansiosa por dizer o \"Sim\" e iniciar o capítulo mais bonito da nossa caminhada.",
         "brideParents": "Sr. Domingos de Oliveira & Sra. Maria de Oliveira",
-        "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2026-11-14T16:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -2134,40 +2137,28 @@
           "time": "10:30",
           "title": "Cerimónia Civil (Registo)",
           "description": "Assinatura oficial na Conservatória do Registo Civil, Rua Rainha Ginga, Luanda.",
-          "icon": "FileText",
-          "clientId": "client_joao_alice",
-          "coupleName": "João & Alice",
-          "locationName": "Conservatória do Registo Civil"
+          "icon": "FileText"
         },
         {
           "id": "t2_ja",
           "time": "16:00",
           "title": "Celebração Religiosa",
           "description": "Bênção nupcial na Igreja Metodista Unida Gaspar Adão De Almeida.",
-          "icon": "Heart",
-          "clientId": "client_joao_alice",
-          "coupleName": "João & Alice",
-          "locationName": "Igreja Metodista Unida Gaspar Adão De Almeida"
+          "icon": "Heart"
         },
         {
           "id": "t3_ja",
           "time": "18:00",
           "title": "Copo de Água & Recepção",
           "description": "Jantar e celebração na Igreja Metodista Unida Gaspar Adão De Almeida.",
-          "icon": "UtensilsCrossed",
-          "clientId": "client_joao_alice",
-          "coupleName": "João & Alice",
-          "locationName": "Igreja Metodista Unida Gaspar Adão De Almeida"
+          "icon": "UtensilsCrossed"
         },
         {
           "id": "t4_ja",
           "time": "21:30",
           "title": "Abertura da Pista & Festa",
           "description": "Música, celebração e momentos inesquecíveis.",
-          "icon": "Music",
-          "clientId": "client_joao_alice",
-          "coupleName": "João & Alice",
-          "locationName": "Igreja Metodista Unida Gaspar Adão De Almeida"
+          "icon": "Music"
         }
       ],
       "venue": {
@@ -2264,13 +2255,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+        "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -2354,13 +2347,13 @@
         "groomFullName": "João dos Santos",
         "groomBio": "Apaixonado pela vida e grato por celebrar este momento tão especial com você.",
         "groomParents": "Sr. Mateus dos Santos & Sra. Helena dos Santos",
-        "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Alice",
         "brideFullName": "Alice de Oliveira",
         "brideBio": "Ansiosa por dizer o \"Sim\" e iniciar o capítulo mais bonito da nossa caminhada.",
         "brideParents": "Sr. Domingos de Oliveira & Sra. Maria de Oliveira",
-        "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2026-11-14T16:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -2501,13 +2494,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+        "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -2582,7 +2577,7 @@
       "id": "client_1793020883177",
       "slug": "client_1793020883177",
       "clientId": "client_1793020883177",
-      "updatedAt": 1793020883177,
+      "updatedAt": 1794303695157,
       "isFirstLogin": false,
       "isNewProfile": false,
       "onboardingCompleted": true,
@@ -2591,13 +2586,13 @@
         "groomFullName": "João dos Santos",
         "groomBio": "Apaixonado pela vida e grato por celebrar este momento tão especial com você.",
         "groomParents": "Sr. Mateus dos Santos & Sra. Helena dos Santos",
-        "groomPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+        "groomPhoto": "/assets/aistudio/noivo_cb7dee44.jpeg",
         "brideName": "Alice",
         "brideFullName": "Alice de Oliveira",
         "brideBio": "Ansiosa por dizer o \"Sim\" e iniciar o capítulo mais bonito da nossa caminhada.",
         "brideParents": "Sr. Domingos de Oliveira & Sra. Maria de Oliveira",
-        "bridePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
-        "couplePhoto": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200"
+        "bridePhoto": "/assets/aistudio/noivaa_f3d108c5.jpeg",
+        "couplePhoto": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg"
       },
       "date": "2026-11-14T16:00:00",
       "storyTitle": "Nossa História de Amor",
@@ -2738,13 +2733,15 @@
         ]
       },
       "media": {
-        "coverImage": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600",
-        "storyImage": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
+        "coverImage": "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+        "storyImage": "/assets/aistudio/nossa_historia_0790376f.jpeg",
         "photos": [
-          "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          "https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800"
+          "/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg",
+          "/assets/aistudio/galeria_do_casal_2_026437d5.jpeg",
+          "/assets/aistudio/galeria_do_casal_0790376f.jpeg",
+          "/assets/aistudio/foto_do_casal_c43a7ce0.jpeg",
+          "/assets/aistudio/capa_eeb23baf.jpeg",
+          "/assets/aistudio/nossa_historia_0790376f.jpeg"
         ]
       },
       "accomTrans": {
@@ -2823,95 +2820,92 @@
   "saasPlans": [
     {
       "id": "free",
-      "name": "Plano Grátis (Degustação)",
+      "name": "Plano Grátis",
       "price": 0,
-      "period": "degustação",
-      "guestLimit": 20,
+      "period": "vitalício",
+      "guestLimit": 25,
       "storageGB": 0.5,
-      "desc": "Ideal para experimentar a plataforma e criar o seu convite.",
-      "perk": "Até 20 Convites Digitais",
       "exclusivePerks": [
         "Ideal para testar ou mini-wedding no civil",
         "Passe com QR Code básico"
       ],
       "features": [
-        "Até 20 convites digitais incluídos",
-        "Página do convite interativo ativa",
-        "Confirmação de presença (RSVP simples)",
-        "Acesso restrito a funções avançadas (sem scanner de portaria QR, sem trilha ilimitada)"
+        "Até 25 convidados na lista",
+        "Formulário de RSVP simples",
+        "Envio manual de links padrão",
+        "Tema clássico pré-configurado"
       ],
       "support": "Comunidade Online"
     },
     {
       "id": "basic",
-      "name": "Plano Essencial",
-      "price": 45000,
+      "name": "Plano Ouro / Essencial",
+      "price": 35000,
       "period": "único",
-      "guestLimit": 100,
-      "storageGB": 1,
-      "desc": "Para celebrações intimistas e familiares.",
-      "perk": "Download do Convite em PDF",
+      "guestLimit": 150,
+      "storageGB": 2,
       "exclusivePerks": [
         "Passe VIP Mobile em PDF",
         "Lista Multicaixa Express & IBAN",
         "Mural de Recados"
       ],
       "features": [
-        "Até 100 convidados na lista",
-        "1 GB de armazenamento",
-        "Download do convite em PDF formato A5",
-        "Suporte por e-mail"
+        "Até 150 convidados na lista",
+        "2 GB de mídias e fotos",
+        "Lista de presentes MCX e IBAN",
+        "Passe VIP Mobile em PDF no smartphone",
+        "Mural de recados dos noivos",
+        "Suporte comercial"
       ],
       "support": "E-mail Comercial (48h)"
     },
     {
       "id": "premium",
-      "name": "Plano Premium",
-      "price": 135000,
+      "name": "Plano Diamante / Luxo",
+      "price": 65000,
       "period": "único",
-      "guestLimit": 300,
-      "storageGB": 5,
+      "guestLimit": "Ilimitado",
+      "storageGB": 10,
       "popular": true,
       "badge": "Mais Recomendado",
-      "desc": "O mais querido para casamentos tradicionais.",
-      "perk": "Mural de Fotos & Trilha Spotify",
       "exclusivePerks": [
-        "Até 300 Convidados",
-        "Mural de Fotos & Mensagens",
-        "Trilha Sonora Spotify"
+        "Convidados Ilimitados",
+        "Automação WhatsApp Integrada",
+        "Álbum Coletivo Colaborativo",
+        "Check-in de Portaria com QR Code"
       ],
       "features": [
-        "Até 300 convidados na lista",
-        "5 GB de fotos em alta resolução",
-        "Trilha sonora Spotify incorporada",
-        "Moderação de mensagens do mural",
+        "Convidados ilimitados na lista",
+        "10 GB de fotos em alta resolução",
+        "Álbum coletivo colaborativo dos convidados",
+        "Check-in e portaria digital com leitor de QR Code",
+        "Disparo de WhatsApp com link de confirmação",
+        "Mural de votos permanente",
         "Suporte prioritário WhatsApp"
       ],
       "support": "Suporte Prioritário WhatsApp (24h)"
     },
     {
       "id": "luxury",
-      "name": "Plano Luxo VIP",
-      "price": 225000,
+      "name": "Plano Luanda VIP",
+      "price": 110000,
       "period": "único",
       "guestLimit": "Ilimitado",
       "storageGB": 25,
-      "badge": "Mais Escolhido",
-      "popular": true,
-      "desc": "A experiência completa e sem limites.",
-      "perk": "Convidados Ilimitados & Scanner QR",
+      "badge": "Experiência Suprema",
       "exclusivePerks": [
-        "Convidados Ilimitados",
-        "Scanner de Portaria com QR Code",
-        "Multi-Eventos Sincronizados",
-        "Assessoria VIP 24/7"
+        "Multi-Eventos (Alambamento, Civil, Igreja, Festa)",
+        "Scanner de Portaria com Múltiplos Recepcionistas",
+        "Domínio Próprio / Slug Exclusivo",
+        "Assessoria VIP Dedicada"
       ],
       "features": [
-        "Convidados ilimitados na lista",
-        "Portaria inteligente com scanner QR",
-        "Disparo automático via Webhook / WhatsApp",
+        "Multi-eventos sincronizados",
+        "25 GB de armazenamento em nuvem",
         "Múltiplos recepcionistas na portaria em tempo real",
-        "Assessoria VIP WhatsApp 24/7"
+        "Domínio personalizado ou slug nobre",
+        "Lista de presentes com proof upload",
+        "Hot-line VIP WhatsApp 24/7"
       ],
       "support": "Assessoria VIP WhatsApp 24/7"
     }
@@ -2936,7 +2930,7 @@
       "type": "system"
     }
   ],
-  "lastUpdated": "2026-11-06T10:23:52.129Z",
+  "lastUpdated": "2026-11-10T10:13:15.016Z",
   "activationRequests": [],
   "subscriptions": [
     {

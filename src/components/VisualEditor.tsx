@@ -39,23 +39,12 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
     }
   }, [config]);
 
-  // Pure updater for local editor state - never triggers parent setState during React render
+  // Pure updater for local editor state - changes stay draft until explicitly clicking Save
   const updateConfig = (updater: (prev: WeddingConfig) => WeddingConfig) => {
     setEditorConfig(prev => updater(prev));
   };
 
-  // Safe debounced synchronization to parent App outside render cycle
-  useEffect(() => {
-    const currentJson = JSON.stringify(editorConfig);
-    if (currentJson === lastSavedJsonRef.current) return;
-
-    const timer = setTimeout(() => {
-      lastSavedJsonRef.current = currentJson;
-      onSave(editorConfig);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [editorConfig, onSave]);
+  const hasPendingChanges = JSON.stringify(editorConfig) !== lastSavedJsonRef.current;
 
   const [visibleSections, setVisibleSections] = useState({
     story: true,
@@ -144,12 +133,19 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
             <span>Personalizar Convite & Tema</span>
           </h2>
           <p className="text-xs text-stone-500 dark:text-stone-400 font-light mt-0.5">
-            Todos os campos são sincronizados instantaneamente com o link do convite dos seus convidados.
+            Edite imagens, textos e temas livremente. As alterações só são validadas e publicadas no convite dos clientes após clicar em <strong className="font-semibold text-stone-700 dark:text-stone-200">Guardar Alterações</strong>.
           </p>
         </div>
 
         {/* View Mode Switcher + Save Button */}
         <div className="flex items-center gap-2.5 flex-wrap">
+          {hasPendingChanges && (
+            <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-[11px] font-semibold rounded-lg flex items-center gap-1.5 animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>Alterações pendentes por salvar</span>
+            </span>
+          )}
+
           {/* Layout Mode Selector */}
           <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700">
             <button
@@ -197,17 +193,21 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
           <button
             type="button"
             onClick={handleSave}
-            className="px-4 py-2 bg-[#8E2840] hover:bg-[#782236] text-white rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 ${
+              hasPendingChanges
+                ? 'bg-gradient-to-r from-[#8E2840] to-rose-700 hover:from-[#782236] hover:to-rose-800 text-white ring-2 ring-rose-400/50 shadow-md scale-[1.02]'
+                : 'bg-[#8E2840] hover:bg-[#782236] text-white'
+            }`}
           >
             {saveSuccess ? (
               <>
                 <Check className="w-4 h-4 text-emerald-300" />
-                <span>Salvo e Sincronizado!</span>
+                <span>Salvo e Publicado no Convite!</span>
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Guardar Alterações</span>
+                <span>{hasPendingChanges ? 'Guardar & Publicar Alterações' : 'Guardar Alterações'}</span>
               </>
             )}
           </button>
@@ -1093,15 +1093,29 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
               </AnimatePresence>
             </div>
 
-            {/* FORM FOOTER WITH INSTANT SYNC BADGE & SAVE */}
-            <div className="p-4 border-t-2 border-stone-100 dark:border-stone-800 bg-stone-50/90 dark:bg-stone-950/90 flex items-center justify-between">
+            {/* FORM FOOTER WITH DRAFT STATUS & SAVE */}
+            <div className="p-4 border-t-2 border-stone-100 dark:border-stone-800 bg-stone-50/90 dark:bg-stone-950/90 flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1.5 font-light">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Sincronização em tempo real ativa
+                {hasPendingChanges ? (
+                  <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                    Alterações em rascunho — clique ao lado para validar e publicar
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Convite sincronizado com as últimas alterações salvas
+                  </span>
+                )}
               </span>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-5 py-2.5 bg-[#8E2840] hover:bg-[#782236] text-white rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                className={`px-5 py-2.5 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 ${
+                  hasPendingChanges
+                    ? 'bg-gradient-to-r from-[#8E2840] to-rose-700 hover:from-[#782236] hover:to-rose-800 text-white ring-2 ring-rose-400/50 shadow-md scale-[1.02]'
+                    : 'bg-[#8E2840] hover:bg-[#782236] text-white'
+                }`}
               >
                 {saveSuccess ? (
                   <>
@@ -1111,7 +1125,7 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Guardar Alterações</span>
+                    <span>{hasPendingChanges ? 'Validar & Guardar Alterações' : 'Guardar Alterações'}</span>
                   </>
                 )}
               </button>

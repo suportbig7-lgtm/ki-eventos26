@@ -33,7 +33,6 @@ import AuthModal from './components/AuthModal';
 import SupabaseModal from './components/SupabaseModal';
 import FeatureGate from './components/FeatureGate';
 import ActivationRequestModal from './components/ActivationRequestModal';
-import { SaaSHealthAlarm } from './components/SaaSHealthAlarm';
 import { usePlanPermissions } from './hooks/usePlanPermissions';
 import { safeSetItem, safeGetItem, sanitizeClientsList, freeUpLocalStorageSpace } from './utils/storage';
 import { isSupabaseConfigured } from './services/supabase';
@@ -1454,9 +1453,6 @@ export default function App() {
         Pular para o conteúdo principal
       </a>
 
-      {/* SaaS Uptime and Health Monitoring Downtime Alarm */}
-      <SaaSHealthAlarm />
-
       {/* Offline sync banner */}
       <AnimatePresence>
         {offlineSyncNotice && (
@@ -2233,6 +2229,25 @@ export default function App() {
                 onGuestRsvpSubmit={handleGuestRsvpFromInvite}
                 onUpdateConfig={handleUpdateWeddingConfig}
                 onNavigateToPlans={() => {
+                  // Fully logout any existing session so the new guest registers independently
+                  setIsAuthenticated(false);
+                  setActiveUser('');
+                  setActiveUserRole(null);
+                  setActiveClientId('');
+                  try {
+                    localStorage.removeItem('kutxi_authenticated');
+                    localStorage.removeItem('kutxi_active_user');
+                    localStorage.removeItem('kutxi_active_role');
+                    localStorage.removeItem('kutxi_active_client_id');
+                    localStorage.removeItem('kutxi_auth_remember');
+                    sessionStorage.clear();
+                  } catch (e) {}
+
+                  // Clear URL parameters
+                  if (typeof window !== 'undefined') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                  }
+
                   setIsInviteLocked(false);
                   setPersona('saas-landing');
                   setTimeout(() => {

@@ -6,26 +6,26 @@
 
 export const WEDDING_FALLBACK_IMAGES = {
   // Couple Cover & Hero
-  cover: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600',
-  coverAlternative: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600',
+  cover: '/assets/aistudio/capa_eeb23baf.jpeg',
+  coverAlternative: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
 
   // Couple Story & Romance
-  story: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200',
-  storyAlternative: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200',
+  story: '/assets/aistudio/nossa_historia_0790376f.jpeg',
+  storyAlternative: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
 
   // Groom & Bride Portraits
-  groom: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800',
-  bride: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800',
-  couple: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
+  groom: '/assets/aistudio/noivo_cb7dee44.jpeg',
+  bride: '/assets/aistudio/noivaa_f3d108c5.jpeg',
+  couple: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
 
   // Gallery Moments
   gallery: [
-    'https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1482618722475-5531547346c7?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1520854221256-17451cc359df?auto=format&fit=crop&q=80&w=800'
+    '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+    '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+    '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+    '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+    '/assets/aistudio/capa_eeb23baf.jpeg',
+    '/assets/aistudio/nossa_historia_0790376f.jpeg'
   ],
 
   // Gift Registry Categories
@@ -35,24 +35,35 @@ export const WEDDING_FALLBACK_IMAGES = {
   giftViagem: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=600',
   giftQuarto: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=600',
   giftExperiencias: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=600',
-  giftDefault: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=600',
+  giftDefault: '/assets/aistudio/capa_eeb23baf.jpeg',
 
   // Avatars
-  avatarFemale: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
-  avatarMale: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150'
+  avatarFemale: '/assets/aistudio/noivaa_f3d108c5.jpeg',
+  avatarMale: '/assets/aistudio/noivo_cb7dee44.jpeg'
 };
 
 /**
- * Returns a valid URL or a reliable fallback if empty/undefined
+ * Returns a valid URL or the real couple photo fallback if empty or generic Unsplash placeholder
  */
 export function getSafeImageUrl(url: string | undefined | null, type: keyof typeof WEDDING_FALLBACK_IMAGES = 'cover'): string {
-  if (url && typeof url === 'string' && url.trim().length > 10) {
-    return url.trim();
-  }
   const fallback = WEDDING_FALLBACK_IMAGES[type];
-  if (typeof fallback === 'string') return fallback;
-  if (Array.isArray(fallback) && fallback.length > 0) return fallback[0];
-  return WEDDING_FALLBACK_IMAGES.cover;
+  const defaultFallbackUrl = typeof fallback === 'string' ? fallback : (Array.isArray(fallback) && fallback.length > 0 ? fallback[0] : WEDDING_FALLBACK_IMAGES.cover);
+
+  if (!url || typeof url !== 'string' || url.trim().length <= 5) {
+    return defaultFallbackUrl;
+  }
+
+  const cleanUrl = url.trim();
+
+  // If the image is an old generic Unsplash portrait/couple placeholder, replace with root real couple photography
+  if (
+    cleanUrl.includes('images.unsplash.com') && 
+    (type === 'groom' || type === 'bride' || type === 'couple' || type === 'cover' || type === 'story' || type === 'gallery')
+  ) {
+    return defaultFallbackUrl;
+  }
+
+  return cleanUrl;
 }
 
 /**

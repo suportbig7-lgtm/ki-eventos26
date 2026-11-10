@@ -43,6 +43,48 @@ function getDbFilePath(): string {
 let cachedDb: ServerDatabase | null = null;
 let dbFilePath = '';
 
+export function sanitizeConfigPhotos(cfg: WeddingConfig): WeddingConfig {
+  if (!cfg) return cfg;
+  const unsplashPhotoPrefix = 'images.unsplash.com';
+  const c = { ...cfg };
+  if (c.brideGroom) {
+    c.brideGroom = { ...c.brideGroom };
+    if (!c.brideGroom.groomPhoto || c.brideGroom.groomPhoto.includes(unsplashPhotoPrefix)) {
+      c.brideGroom.groomPhoto = '/assets/aistudio/noivo_cb7dee44.jpeg';
+    }
+    if (!c.brideGroom.bridePhoto || c.brideGroom.bridePhoto.includes(unsplashPhotoPrefix)) {
+      c.brideGroom.bridePhoto = '/assets/aistudio/noivaa_f3d108c5.jpeg';
+    }
+    if (!c.brideGroom.couplePhoto || c.brideGroom.couplePhoto.includes(unsplashPhotoPrefix)) {
+      c.brideGroom.couplePhoto = '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg';
+    }
+  }
+  if (c.media) {
+    c.media = { ...c.media };
+    if (!c.media.coverImage || c.media.coverImage.includes(unsplashPhotoPrefix)) {
+      c.media.coverImage = '/assets/aistudio/capa_eeb23baf.jpeg';
+    }
+    if (!c.media.storyImage || c.media.storyImage.includes(unsplashPhotoPrefix)) {
+      c.media.storyImage = '/assets/aistudio/nossa_historia_0790376f.jpeg';
+    }
+    if (
+      !Array.isArray(c.media.photos) ||
+      c.media.photos.length === 0 ||
+      c.media.photos.some(p => p && p.includes(unsplashPhotoPrefix))
+    ) {
+      c.media.photos = [
+        '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+        '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+        '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+        '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+        '/assets/aistudio/capa_eeb23baf.jpeg',
+        '/assets/aistudio/nossa_historia_0790376f.jpeg'
+      ];
+    }
+  }
+  return c;
+}
+
 function buildInitialDatabase(): ServerDatabase {
   const configs: Record<string, WeddingConfig> = {
     client_1: INITIAL_WEDDING_CONFIG,
@@ -246,20 +288,24 @@ export function getServerDb(): ServerDatabase {
           }
         });
 
-        // Ensure primary slug aliases exist
-        if (!parsed.weddingConfigs['joao-alice']) {
-          parsed.weddingConfigs['joao-alice'] = CONFIG_JOAO_ALICE;
+        // Ensure primary slug aliases exist and have the real couple photography
+        parsed.weddingConfigs['joao-alice'] = sanitizeConfigPhotos(parsed.weddingConfigs['joao-alice'] || CONFIG_JOAO_ALICE);
+        parsed.weddingConfigs['client_joao_alice'] = sanitizeConfigPhotos(parsed.weddingConfigs['client_joao_alice'] || CONFIG_JOAO_ALICE);
+        parsed.weddingConfigs['client_1793020883177'] = sanitizeConfigPhotos(parsed.weddingConfigs['client_1793020883177'] || {
+          ...CONFIG_JOAO_ALICE,
+          id: 'client_1793020883177',
+          clientId: 'client_1793020883177',
+          slug: 'client_1793020883177'
+        });
+
+        // Sanitize all weddingConfigs to replace generic unsplash photos with real couple photos
+        for (const [k, cfg] of Object.entries(parsed.weddingConfigs)) {
+          parsed.weddingConfigs[k] = sanitizeConfigPhotos(cfg);
         }
-        if (!parsed.weddingConfigs['client_joao_alice']) {
-          parsed.weddingConfigs['client_joao_alice'] = CONFIG_JOAO_ALICE;
-        }
-        if (!parsed.weddingConfigs['client_1793020883177']) {
-          parsed.weddingConfigs['client_1793020883177'] = {
-            ...CONFIG_JOAO_ALICE,
-            id: 'client_1793020883177',
-            clientId: 'client_1793020883177',
-            slug: 'client_1793020883177'
-          };
+        for (const cl of parsed.clients) {
+          if (cl.config) {
+            cl.config = sanitizeConfigPhotos(cl.config);
+          }
         }
 
         // Union merge INITIAL_USER_ACCOUNTS

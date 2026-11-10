@@ -77,13 +77,13 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
     groomFullName: 'Gabriel Pureza dos Santos',
     groomBio: 'Apaixonado pelo mar de Luanda e por construir uma vida repleta de cumplicidade e honra ao lado da Sofia.',
     groomParents: 'Sr. Manuel dos Santos & Sra. Rosa dos Santos',
-    groomPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+    groomPhoto: '/assets/aistudio/noivo_cb7dee44.jpeg',
     brideName: 'Sofia',
     brideFullName: 'Sofia Kiala de Oliveira',
     brideBio: 'Arquiteta de interiores com paixão por arte, design e momentos inesquecíveis em família.',
     brideParents: 'Sr. Alberto de Oliveira & Sra. Teresa de Oliveira',
-    bridePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
-    couplePhoto: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
+    bridePhoto: '/assets/aistudio/noivaa_f3d108c5.jpeg',
+    couplePhoto: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
   },
   date: '2026-10-25T16:00:00',
   storyTitle: 'Nossa História de Amor',
@@ -286,15 +286,15 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
     ]
   },
   media: {
-    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600',
-    storyImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
+    coverImage: '/assets/aistudio/capa_eeb23baf.jpeg',
+    storyImage: '/assets/aistudio/nossa_historia_0790376f.jpeg',
     photos: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&q=80&w=800'
+      '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+      '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+      '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+      '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+      '/assets/aistudio/capa_eeb23baf.jpeg',
+      '/assets/aistudio/nossa_historia_0790376f.jpeg'
     ]
   },
   accomTrans: {
@@ -363,13 +363,13 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
     groomFullName: 'João dos Santos',
     groomBio: 'Apaixonado pela vida e grato por celebrar este momento tão especial com você.',
     groomParents: 'Sr. Mateus dos Santos & Sra. Helena dos Santos',
-    groomPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800',
+    groomPhoto: '/assets/aistudio/noivo_cb7dee44.jpeg',
     brideName: 'Alice',
     brideFullName: 'Alice de Oliveira',
     brideBio: 'Ansiosa por dizer o "Sim" e iniciar o capítulo mais bonito da nossa caminhada.',
     brideParents: 'Sr. Domingos de Oliveira & Sra. Maria de Oliveira',
-    bridePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800',
-    couplePhoto: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200',
+    bridePhoto: '/assets/aistudio/noivaa_f3d108c5.jpeg',
+    couplePhoto: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
   },
   date: '2026-11-14T16:00:00',
   storyTitle: 'Nossa História de Amor',
@@ -490,13 +490,15 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
     ]
   },
   media: {
-    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1600',
-    storyImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
+    coverImage: '/assets/aistudio/capa_eeb23baf.jpeg',
+    storyImage: '/assets/aistudio/nossa_historia_0790376f.jpeg',
     photos: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1519225495810-7517ccd358ee?auto=format&fit=crop&q=80&w=800'
+      '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+      '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+      '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+      '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+      '/assets/aistudio/capa_eeb23baf.jpeg',
+      '/assets/aistudio/nossa_historia_0790376f.jpeg'
     ]
   },
   accomTrans: {
