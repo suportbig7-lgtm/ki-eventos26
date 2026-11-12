@@ -6,6 +6,7 @@ import {
   Gift, ListTodo, Building, Lock, X, FileText 
 } from 'lucide-react';
 import { ClientWeddingSaaS, Guest, WeddingConfig } from '../types';
+import { buildPortableInviteLink } from '../utils/portableLink';
 
 interface ClientReadOnlyModalProps {
   client: ClientWeddingSaaS | null;
@@ -105,7 +106,7 @@ export default function ClientReadOnlyModal({ client, isOpen, onClose, userAccou
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={`?clientId=${client.id}&invite=preview`}
+              href={buildPortableInviteLink(config, typeof window !== 'undefined' ? window.location.origin : '')}
               target="_blank"
               rel="noreferrer"
               className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all border border-white/15 inline-flex items-center gap-1.5 cursor-pointer"

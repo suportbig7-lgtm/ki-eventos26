@@ -160,8 +160,8 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
     capacity: 250,
     hasParking: true,
     photos: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800'
+      '/assets/aistudio/capa_eeb23baf.jpeg',
+      '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg'
     ]
   },
   dressCode: {
@@ -191,16 +191,16 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
     }
   ],
   giftRegistry: {
-    pixKey: '+244 923 456 789',
+    pixKey: '',
     pixQrCode: '',
     bankName: 'BFA — Banco de Fomento Angola',
     bankAgency: 'Agência Talatona (0042)',
-    bankAccount: 'AO06 0006 0042 0001 9472 0090 1',
+    bankAccount: '194720090',
     iban: 'AO06 0006 0042 0001 9472 0090 1',
-    multicaixaPhone: '+244 923 456 789',
+    multicaixaPhone: '',
     bankRecipient: 'Gabriel dos Santos & Sofia de Oliveira',
     accountHolder: 'Gabriel & Sofia',
-    customInstructions: 'As contribuições podem ser efetuadas via Multicaixa Express (MCX) ou transferência por IBAN bancário angolano. Agradecemos do fundo do coração!',
+    customInstructions: 'As contribuições podem ser efetuadas via transferência por IBAN bancário angolano. Agradecemos do fundo do coração!',
     registryItems: [
       {
         id: 'g_1',
@@ -209,7 +209,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
         totalCollected: 85000,
         category: 'lua_de_mel',
         description: 'Passeio romântico de lancha privativa pelas águas do Mussulo.',
-        imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
         status: 'recebido',
         claimedBy: 'Madrinha Isabella',
         claimedDate: '12/10/2026',
@@ -220,7 +220,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
             name: 'Madrinha Isabella',
             amount: 85000,
             date: '12/10/2026',
-            avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
+            avatarUrl: '',
             message: 'Desejo que a lua de mel seja um sonho inesquecível! Todo amor do mundo para vocês.'
           }
         ]
@@ -232,7 +232,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
         totalCollected: 220000,
         category: 'eletro',
         description: 'Para cafés especiais e manhãs cheias de energia no novo lar.',
-        imageUrl: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/capa_eeb23baf.jpeg',
         status: 'disponivel',
         contributors: [
           {
@@ -240,7 +240,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
             name: 'Padrinho Lucas Vance',
             amount: 120000,
             date: '13/10/2026',
-            avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
+            avatarUrl: '',
             message: 'Parabéns ao lindo casal! Já estou ansioso pelo café na casa nova.'
           },
           {
@@ -248,7 +248,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
             name: 'Tia Eleonora',
             amount: 100000,
             date: '14/10/2026',
-            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+            avatarUrl: '',
             message: 'Que Deus derrame bênçãos sem medida sobre essa união sagrada.'
           }
         ]
@@ -260,7 +260,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
         totalCollected: 190000,
         category: 'cozinha',
         description: 'Conjunto completo para jantares de celebração com os amigos e familiares.',
-        imageUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
         status: 'disponivel',
         contributors: [
           {
@@ -279,7 +279,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
         totalCollected: 0,
         category: 'cozinha',
         description: 'Conjunto durável com caçarolas e frigideiras de alta performance gastronómica.',
-        imageUrl: 'https://images.unsplash.com/photo-1584990347449-a29283f3e1b1?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/nossa_historia_0790376f.jpeg',
         status: 'disponivel',
         contributors: []
       }
@@ -308,7 +308,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
   theme: THEME_PRESETS[0],
   customFooter: 'Com amor, sempre. — Gabriel & Sofia',
   contactInfo: {
-    phone: '+244 923 456 789',
+    phone: '',
     email: 'casamento@gabrielesofia.ao',
   },
   isActive: true,
@@ -327,7 +327,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       date: '14 de Outubro de 2026',
       giftName: 'Passeio de Lancha no Mussulo',
       amountContributed: 85000,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150'
+      avatarUrl: ''
     },
     {
       id: 'm2',
@@ -336,7 +336,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       date: '14 de Outubro de 2026',
       giftName: 'Máquina de Café Espresso DeLonghi',
       amountContributed: 120000,
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150'
+      avatarUrl: ''
     },
     {
       id: 'm3',
@@ -345,7 +345,7 @@ export const INITIAL_WEDDING_CONFIG: WeddingConfig = {
       date: '13 de Outubro de 2026',
       giftName: 'Máquina de Café Espresso DeLonghi',
       amountContributed: 100000,
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150'
+      avatarUrl: ''
     }
   ]
 };
@@ -447,12 +447,12 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
   giftRegistry: {
     pixKey: '',
     pixQrCode: '',
-    bankName: 'Banco BAI / BFA',
-    bankAgency: '0040',
-    bankAccount: '123456789',
+    bankName: 'BFA — Banco de Fomento Angola',
+    bankAgency: 'Agência Talatona (0042)',
+    bankAccount: '194720090',
     bankRecipient: 'João dos Santos & Alice de Oliveira',
-    iban: 'AO06 0040 0000 1234 5678 9012 3',
-    multicaixaPhone: '+244 923 888 777',
+    iban: 'AO06 0006 0042 0001 9472 0090 1',
+    multicaixaPhone: '',
     registryItems: [
       {
         id: 'g_ja_1',
@@ -461,7 +461,7 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
         totalCollected: 140000,
         category: 'mesa',
         description: 'Conjunto completo de porcelana fina para os jantares de celebração com os amigos e família.',
-        imageUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
         status: 'disponivel',
         contributors: []
       },
@@ -472,7 +472,7 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
         totalCollected: 200000,
         category: 'viagem',
         description: 'Experiência inesquecível de descanso e celebração à beira-mar.',
-        imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
         status: 'disponivel',
         contributors: []
       },
@@ -483,7 +483,7 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
         totalCollected: 195000,
         category: 'eletro',
         description: 'Para nos receberem sempre com um café de excelência.',
-        imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/capa_eeb23baf.jpeg',
         status: 'recebido',
         contributors: []
       }
@@ -512,7 +512,7 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
   theme: THEME_PRESETS[0],
   customFooter: 'Com amor, sempre. — João & Alice',
   contactInfo: {
-    phone: '+244 923 888 777',
+    phone: '',
     email: 'jhonkutxi@gmail.com'
   },
   isActive: true,
@@ -529,7 +529,7 @@ export const CONFIG_JOAO_ALICE: WeddingConfig = {
       date: '14 de Outubro de 2026',
       giftName: 'Máquina de Café Espresso',
       amountContributed: 95000,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
+      avatarUrl: '',
       status: 'approved'
     }
   ]
@@ -547,13 +547,13 @@ export const CONFIG_PEDRO_PUREZA: WeddingConfig = {
     groomFullName: 'Pedro Miguel',
     groomBio: 'Um coração apaixonado e grato por construir uma linda família ao lado da Pureza.',
     groomParents: 'Sr. António Miguel & Sra. Joana Miguel',
-    groomPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800',
+    groomPhoto: '/assets/aistudio/noivo_cb7dee44.jpeg',
     brideName: 'Pureza',
     brideFullName: 'Pureza Kiala',
     brideBio: 'Vivendo a realização de um sonho de amor, respeito e cumplicidade com o Pedro.',
     brideParents: 'Sr. Bernardo Kiala & Sra. Rosa Kiala',
-    bridePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800',
-    couplePhoto: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200',
+    bridePhoto: '/assets/aistudio/noivaa_f3d108c5.jpeg',
+    couplePhoto: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
   },
   date: '2027-04-22T15:00:00',
   storyTitle: 'Nossa História de Amor',
@@ -591,12 +591,12 @@ export const CONFIG_PEDRO_PUREZA: WeddingConfig = {
   giftRegistry: {
     pixKey: '',
     pixQrCode: '',
-    bankName: 'Banco BFA / BAI',
-    bankAgency: '0006',
-    bankAccount: '987654321',
+    bankName: 'BFA — Banco de Fomento Angola',
+    bankAgency: 'Agência Talatona (0042)',
+    bankAccount: '194720090',
     bankRecipient: 'Pedro Miguel & Pureza Kiala',
-    iban: 'AO06 0006 0000 9876 5432 1012 4',
-    multicaixaPhone: '+244 923 111 222',
+    iban: 'AO06 0006 0042 0001 9472 0090 1',
+    multicaixaPhone: '',
     registryItems: [
       {
         id: 'g_pp_1',
@@ -605,18 +605,18 @@ export const CONFIG_PEDRO_PUREZA: WeddingConfig = {
         totalCollected: 50000,
         category: 'eletro',
         description: 'Eletroportáteis para o lar.',
-        imageUrl: 'https://images.unsplash.com/photo-1584990347449-a29283f3e1b1?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/capa_eeb23baf.jpeg',
         status: 'disponivel',
         contributors: []
       }
     ]
   },
   media: {
-    coverImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1600',
-    storyImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
+    coverImage: '/assets/aistudio/capa_eeb23baf.jpeg',
+    storyImage: '/assets/aistudio/nossa_historia_0790376f.jpeg',
     photos: [
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'
+      '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+      '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg'
     ]
   },
   accomTrans: {
@@ -627,7 +627,7 @@ export const CONFIG_PEDRO_PUREZA: WeddingConfig = {
   theme: THEME_PRESETS[1],
   customFooter: 'Com amor, sempre. — Pedro & Pureza',
   contactInfo: {
-    phone: '+244 923 111 222',
+    phone: '',
     email: 'suportbig7@gmail.com'
   },
   isActive: true,
@@ -647,13 +647,13 @@ export const CONFIG_OSVALDO_NICIDIA: WeddingConfig = {
     groomFullName: 'Osvaldo Vagabo',
     groomBio: 'O homem mais feliz por ter encontrado na Nicidia a sua eterna companheira e parceira de vida.',
     groomParents: 'Sr. Gaspar Vagabo & Sra. Maria Vagabo',
-    groomPhoto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=800',
+    groomPhoto: '/assets/aistudio/noivo_cb7dee44.jpeg',
     brideName: 'Nicidia',
     brideFullName: 'Nicidia Manuel',
     brideBio: 'Com imenso amor no coração e a bênção de Deus para o nosso matrimônio.',
     brideParents: 'Sr. Pedro Manuel & Sra. Esperança Manuel',
-    bridePhoto: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800',
-    couplePhoto: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200',
+    bridePhoto: '/assets/aistudio/noivaa_f3d108c5.jpeg',
+    couplePhoto: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
   },
   date: '2027-07-25T16:00:00',
   storyTitle: 'Nossa História de Amor',
@@ -691,12 +691,12 @@ export const CONFIG_OSVALDO_NICIDIA: WeddingConfig = {
   giftRegistry: {
     pixKey: '',
     pixQrCode: '',
-    bankName: 'Banco BAI / Sol',
-    bankAgency: '0055',
-    bankAccount: '456789012',
+    bankName: 'BFA — Banco de Fomento Angola',
+    bankAgency: 'Agência Talatona (0042)',
+    bankAccount: '194720090',
     bankRecipient: 'Osvaldo Vagabo & Nicidia Manuel',
-    iban: 'AO06 0055 0000 4567 8901 2345 6',
-    multicaixaPhone: '+244 923 555 666',
+    iban: 'AO06 0006 0042 0001 9472 0090 1',
+    multicaixaPhone: '',
     registryItems: [
       {
         id: 'g_on_1',
@@ -705,18 +705,18 @@ export const CONFIG_OSVALDO_NICIDIA: WeddingConfig = {
         totalCollected: 120000,
         category: 'mesa',
         description: 'Faqueiro de gala em aço inox com acabamento dourado.',
-        imageUrl: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=400',
+        imageUrl: '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
         status: 'disponivel',
         contributors: []
       }
     ]
   },
   media: {
-    coverImage: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1600',
-    storyImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
+    coverImage: '/assets/aistudio/capa_eeb23baf.jpeg',
+    storyImage: '/assets/aistudio/nossa_historia_0790376f.jpeg',
     photos: [
-      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'
+      '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+      '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg'
     ]
   },
   accomTrans: {
@@ -727,7 +727,7 @@ export const CONFIG_OSVALDO_NICIDIA: WeddingConfig = {
   theme: THEME_PRESETS[3],
   customFooter: 'Com amor, sempre. — Osvaldo & Nicidia',
   contactInfo: {
-    phone: '+244 923 555 666',
+    phone: '',
     email: 'osvaldovagabo@gmail.com'
   },
   isActive: true,
@@ -961,11 +961,11 @@ export function createBlankWeddingConfig(clientId: string, groomName = '', bride
     giftRegistry: {
       pixKey: '',
       pixQrCode: '',
-      bankName: 'BFA / BAI',
-      bankAgency: '',
-      bankAccount: '',
-      bankRecipient: '',
-      iban: '',
+      bankName: 'BFA — Banco de Fomento Angola',
+      bankAgency: 'Agência Talatona (0042)',
+      bankAccount: '194720090',
+      bankRecipient: groomName && brideName ? `${groomName.trim()} & ${brideName.trim()}` : '',
+      iban: 'AO06 0006 0042 0001 9472 0090 1',
       multicaixaPhone: '',
       registryItems: [],
     },

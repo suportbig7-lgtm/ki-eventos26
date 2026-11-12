@@ -301,7 +301,7 @@ export default function EventOnboardingModal({
                   </label>
                   <input
                     type="text"
-                    placeholder="Ex: +244 923 456 789"
+                    placeholder="Ex: +244 9XX XXX XXX"
                     value={contactPhone}
                     onChange={e => setContactPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-800"
@@ -496,7 +496,7 @@ export default function EventOnboardingModal({
                   </label>
                   <input
                     type="text"
-                    placeholder="Ex: 923 456 789"
+                    placeholder="Ex: 9XX XXX XXX (opcional)"
                     value={multicaixaPhone}
                     onChange={e => setMulticaixaPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
@@ -509,7 +509,7 @@ export default function EventOnboardingModal({
                     <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">IBAN Angolano (BAI / BFA / etc.)</label>
                     <input
                       type="text"
-                      placeholder="Ex: AO06.0040.0000.1234.5678.9012.3"
+                      placeholder="Ex: AO06 0006 0042 0001 9472 0090 1"
                       value={bankIban}
                       onChange={e => setBankIban(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono focus:outline-none"

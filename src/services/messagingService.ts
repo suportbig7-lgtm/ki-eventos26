@@ -10,6 +10,7 @@
 
 import { Guest, WeddingConfig, MessagingWebhookConfig, MessagingLog } from '../types';
 import { safeGetItem, safeSetItem } from '../utils/storage';
+import { buildPortableInviteLink } from '../utils/portableLink';
 
 const CONFIG_KEY = 'kutxi_messaging_config';
 const LOGS_KEY = 'kutxi_messaging_logs';
@@ -122,7 +123,7 @@ export function formatGuestMessage(guest: Guest, config: WeddingConfig): string 
   } catch (e) {}
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const inviteUrl = `${origin}/?invite=${guest.rsvpToken}&clientId=${config.clientId || 'client_1'}`;
+  const inviteUrl = buildPortableInviteLink(config, origin, guest.rsvpToken);
 
   const template = cfg.customTemplate || DEFAULT_MESSAGING_CONFIG.customTemplate!;
 
@@ -244,7 +245,7 @@ export async function dispatchRsvpWhatsApp(
   const cleanPhone = (guest.phone || '').replace(/[^0-9]/g, '');
   const messageText = formatGuestMessage(guest, config);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const inviteUrl = `${origin}/?invite=${guest.rsvpToken}&clientId=${config.clientId || 'client_1'}`;
+  const inviteUrl = buildPortableInviteLink(config, origin, guest.rsvpToken);
 
   // If phone is missing or clearly invalid, log failure
   if (!cleanPhone || cleanPhone.length < 8) {

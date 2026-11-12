@@ -67,57 +67,119 @@ export async function idbGet(key: string): Promise<string | null> {
   }
 }
 
+const DEFAULT_BFA = {
+  bankName: 'BFA — Banco de Fomento Angola',
+  bankAgency: 'Agência Talatona (0042)',
+  bankAccount: '194720090',
+  iban: 'AO06 0006 0042 0001 9472 0090 1',
+};
+
+const INVENTED_EXPRESS_PHONES = new Set([
+  '+244 923 456 789',
+  '923 456 789',
+  '+244923456789',
+  '+244 923 888 777',
+  '+244 923 111 222',
+  '+244 923 555 666',
+  '+244 923 000 000',
+]);
+
+const INVENTED_IBANS_LIST = [
+  'AO06 0040 0000 1234 5678 9012 3',
+  'AO06 0006 0000 9876 5432 1012 4',
+  'AO06 0055 0000 4567 8901 2345 6',
+  'AO06.0040.0000.1234.5678.9012.3',
+  'AO06.0006.0000.9876.5432.1098.7',
+];
+
+function cleanPhotoUrl(url: string | undefined, fallback: string, blankForNewProfile: boolean): string {
+  if (!url || typeof url !== 'string') return blankForNewProfile ? '' : fallback;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.includes('images.unsplash.com')) {
+    return blankForNewProfile ? '' : fallback;
+  }
+  return trimmed;
+}
+
 /**
- * Strips heavy data URIs (base64 images, audio, PDF) from a WeddingConfig
+ * Cleans Unsplash placeholders and invented banking fields from a WeddingConfig
+ * while PRESERVING all couple-uploaded base64 data URIs.
  */
 export function sanitizeConfigForStorage(config?: WeddingConfig): WeddingConfig | undefined {
   if (!config) return undefined;
   try {
     const sanitized: WeddingConfig = JSON.parse(JSON.stringify(config));
-    
-    // Strip heavy PDF data URI
-    if (sanitized.pdfUrl && sanitized.pdfUrl.startsWith('data:')) {
-      sanitized.pdfUrl = undefined;
+    const blank = Boolean(sanitized.isNewProfile);
+
+    if (sanitized.brideGroom) {
+      sanitized.brideGroom.groomPhoto = cleanPhotoUrl(sanitized.brideGroom.groomPhoto, '/assets/aistudio/noivo_cb7dee44.jpeg', blank);
+      sanitized.brideGroom.bridePhoto = cleanPhotoUrl(sanitized.brideGroom.bridePhoto, '/assets/aistudio/noivaa_f3d108c5.jpeg', blank);
+      sanitized.brideGroom.couplePhoto = cleanPhotoUrl(sanitized.brideGroom.couplePhoto, '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg', blank);
     }
 
-    // Strip heavy coverImage
-    if (sanitized.media?.coverImage && sanitized.media.coverImage.startsWith('data:')) {
-      sanitized.media.coverImage = "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200";
+    if (sanitized.media) {
+      sanitized.media.coverImage = cleanPhotoUrl(sanitized.media.coverImage, '/assets/aistudio/capa_eeb23baf.jpeg', blank);
+      sanitized.media.storyImage = cleanPhotoUrl(sanitized.media.storyImage, '/assets/aistudio/nossa_historia_0790376f.jpeg', blank);
+      if (Array.isArray(sanitized.media.photos)) {
+        const galleryFallbacks = [
+          '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+          '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+          '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+          '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+          '/assets/aistudio/capa_eeb23baf.jpeg',
+          '/assets/aistudio/nossa_historia_0790376f.jpeg'
+        ];
+        sanitized.media.photos = sanitized.media.photos
+          .map((p, idx) => cleanPhotoUrl(p, galleryFallbacks[idx % galleryFallbacks.length], blank))
+          .filter(p => Boolean(p));
+      }
     }
 
-    // Strip heavy storyImage
-    if (sanitized.media?.storyImage && sanitized.media.storyImage.startsWith('data:')) {
-      sanitized.media.storyImage = "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800";
+    if (sanitized.venue?.photos && Array.isArray(sanitized.venue.photos)) {
+      sanitized.venue.photos = sanitized.venue.photos
+        .map((p, idx) => cleanPhotoUrl(p, idx % 2 === 0 ? '/assets/aistudio/capa_eeb23baf.jpeg' : '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg', blank))
+        .filter(p => Boolean(p));
     }
 
-    // Strip heavy audio data URI if present
-    if ((sanitized as any).media?.audioUrl && typeof (sanitized as any).media.audioUrl === 'string' && (sanitized as any).media.audioUrl.startsWith('data:')) {
-      delete (sanitized as any).media.audioUrl;
+    if (sanitized.giftRegistry) {
+      if (INVENTED_EXPRESS_PHONES.has((sanitized.giftRegistry.multicaixaPhone || '').trim())) {
+        sanitized.giftRegistry.multicaixaPhone = '';
+      }
+      if (INVENTED_EXPRESS_PHONES.has((sanitized.giftRegistry.pixKey || '').trim())) {
+        sanitized.giftRegistry.pixKey = '';
+      }
+      if (!sanitized.giftRegistry.iban || INVENTED_IBANS_LIST.includes(sanitized.giftRegistry.iban.trim())) {
+        sanitized.giftRegistry.iban = DEFAULT_BFA.iban;
+        sanitized.giftRegistry.bankName = DEFAULT_BFA.bankName;
+        sanitized.giftRegistry.bankAgency = DEFAULT_BFA.bankAgency;
+        sanitized.giftRegistry.bankAccount = DEFAULT_BFA.bankAccount;
+      }
+      if (!sanitized.giftRegistry.bankName || sanitized.giftRegistry.bankName === 'Banco BAI / BFA' || sanitized.giftRegistry.bankName === 'Banco BFA / BAI' || sanitized.giftRegistry.bankName === 'Banco BAI / Sol' || sanitized.giftRegistry.bankName === 'BFA / BAI') {
+        sanitized.giftRegistry.bankName = DEFAULT_BFA.bankName;
+      }
+      if (Array.isArray(sanitized.giftRegistry.registryItems)) {
+        sanitized.giftRegistry.registryItems = sanitized.giftRegistry.registryItems.map(item => ({
+          ...item,
+          imageUrl: cleanPhotoUrl(item.imageUrl, '/assets/aistudio/capa_eeb23baf.jpeg', blank),
+          contributors: Array.isArray(item.contributors)
+            ? item.contributors.map(c => ({
+                ...c,
+                avatarUrl: c.avatarUrl && c.avatarUrl.includes('images.unsplash.com') ? '' : c.avatarUrl
+              }))
+            : item.contributors
+        }));
+      }
     }
 
-    // Strip base64 gallery photos
-    if (sanitized.media?.photos && Array.isArray(sanitized.media.photos)) {
-      sanitized.media.photos = sanitized.media.photos
-        .slice(0, 6)
-        .map(p => {
-          if (typeof p === 'string' && p.startsWith('data:')) {
-            return "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=600";
-          }
-          return p;
-        });
+    if (sanitized.contactInfo?.phone && INVENTED_EXPRESS_PHONES.has(sanitized.contactInfo.phone.trim())) {
+      sanitized.contactInfo.phone = '';
     }
 
-    // Clean gift registry items images if base64
-    if (sanitized.giftRegistry?.registryItems && Array.isArray(sanitized.giftRegistry.registryItems)) {
-      sanitized.giftRegistry.registryItems = sanitized.giftRegistry.registryItems.map(item => {
-        if (item.imageUrl && item.imageUrl.startsWith('data:')) {
-          return {
-            ...item,
-            imageUrl: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&q=80&w=400"
-          };
-        }
-        return item;
-      });
+    if (Array.isArray(sanitized.muralComments)) {
+      sanitized.muralComments = sanitized.muralComments.map(c => ({
+        ...c,
+        avatarUrl: c.avatarUrl && c.avatarUrl.includes('images.unsplash.com') ? '' : c.avatarUrl
+      }));
     }
 
     return sanitized;
@@ -127,7 +189,57 @@ export function sanitizeConfigForStorage(config?: WeddingConfig): WeddingConfig 
 }
 
 /**
- * Prunes the clients list to ensure it NEVER causes quota overflow.
+ * Prunes oversized base64 blobs ONLY when localStorage throws QuotaExceeded.
+ * Uses local /assets/aistudio/ assets (or empty for virgin profiles) — never Unsplash.
+ */
+function pruneConfigForLocalStorage(config?: WeddingConfig): WeddingConfig | undefined {
+  const sanitized = sanitizeConfigForStorage(config);
+  if (!sanitized) return undefined;
+  try {
+    const pruned: WeddingConfig = JSON.parse(JSON.stringify(sanitized));
+    const blank = Boolean(pruned.isNewProfile);
+
+    if (pruned.pdfUrl && pruned.pdfUrl.startsWith('data:')) {
+      pruned.pdfUrl = undefined;
+    }
+    if ((pruned as any).media?.audioUrl && typeof (pruned as any).media.audioUrl === 'string' && (pruned as any).media.audioUrl.startsWith('data:')) {
+      delete (pruned as any).media.audioUrl;
+    }
+    if (pruned.brideGroom) {
+      if (pruned.brideGroom.groomPhoto?.startsWith('data:')) pruned.brideGroom.groomPhoto = blank ? '' : '/assets/aistudio/noivo_cb7dee44.jpeg';
+      if (pruned.brideGroom.bridePhoto?.startsWith('data:')) pruned.brideGroom.bridePhoto = blank ? '' : '/assets/aistudio/noivaa_f3d108c5.jpeg';
+      if (pruned.brideGroom.couplePhoto?.startsWith('data:')) pruned.brideGroom.couplePhoto = blank ? '' : '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg';
+    }
+    if (pruned.media) {
+      if (pruned.media.coverImage?.startsWith('data:')) pruned.media.coverImage = blank ? '' : '/assets/aistudio/capa_eeb23baf.jpeg';
+      if (pruned.media.storyImage?.startsWith('data:')) pruned.media.storyImage = blank ? '' : '/assets/aistudio/nossa_historia_0790376f.jpeg';
+      if (Array.isArray(pruned.media.photos)) {
+        const galleryFallbacks = [
+          '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+          '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+          '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+        ];
+        pruned.media.photos = pruned.media.photos
+          .slice(0, 6)
+          .map((p, idx) => (typeof p === 'string' && p.startsWith('data:')) ? (blank ? '' : galleryFallbacks[idx % galleryFallbacks.length]) : p)
+          .filter(Boolean);
+      }
+    }
+    if (pruned.giftRegistry?.registryItems) {
+      pruned.giftRegistry.registryItems = pruned.giftRegistry.registryItems.map(item =>
+        item.imageUrl?.startsWith('data:')
+          ? { ...item, imageUrl: blank ? '' : '/assets/aistudio/capa_eeb23baf.jpeg' }
+          : item
+      );
+    }
+    return pruned;
+  } catch (e) {
+    return sanitized;
+  }
+}
+
+/**
+ * Deduplicates and cleans clients list while preserving couple-uploaded photos.
  */
 export function sanitizeClientsList(clients: ClientWeddingSaaS[]): ClientWeddingSaaS[] {
   if (!Array.isArray(clients)) return [];
@@ -142,30 +254,17 @@ export function sanitizeClientsList(clients: ClientWeddingSaaS[]): ClientWedding
     }
   }
 
-  return uniqueClients.map(c => {
-    let leanConfig: WeddingConfig = c.config;
-    if (c.config) {
-      leanConfig = {
-        ...c.config,
-        media: {
-          coverImage: (c.config.media?.coverImage && !c.config.media.coverImage.startsWith('data:'))
-            ? c.config.media.coverImage
-            : "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200",
-          storyImage: (c.config.media?.storyImage && !c.config.media.storyImage.startsWith('data:'))
-            ? c.config.media.storyImage
-            : "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=800",
-          photos: (c.config.media?.photos || [])
-            .slice(0, 3)
-            .map(p => (typeof p === 'string' && p.startsWith('data:')) ? "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=600" : p)
-        },
-        pdfUrl: undefined
-      };
-    }
-    return {
-      ...c,
-      config: leanConfig
-    };
-  });
+  return uniqueClients.map(c => ({
+    ...c,
+    config: c.config ? (sanitizeConfigForStorage(c.config) || c.config) : c.config
+  }));
+}
+
+function pruneClientsForLocalStorage(clients: ClientWeddingSaaS[]): ClientWeddingSaaS[] {
+  return sanitizeClientsList(clients).map(c => ({
+    ...c,
+    config: c.config ? (pruneConfigForLocalStorage(c.config) || c.config) : c.config
+  }));
 }
 
 /**
@@ -256,29 +355,27 @@ export function safeSetItem(key: string, value: string): boolean {
       try {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed)) {
-          const sanitized = sanitizeClientsList(parsed);
-          const sanitizedStr = JSON.stringify(sanitized);
-          localStorage.setItem(key, sanitizedStr);
-          memoryStorage.set(key, sanitizedStr);
+          const pruned = pruneClientsForLocalStorage(parsed);
+          const prunedStr = JSON.stringify(pruned);
+          localStorage.setItem(key, prunedStr);
           return true;
         }
       } catch (err) {
-        console.warn(`[safeSetItem] Could not save sanitized ${key} to localStorage:`, err);
+        console.warn(`[safeSetItem] Could not save pruned ${key} to localStorage:`, err);
       }
     }
 
     if (key.includes('wedding_config')) {
       try {
         const parsed = JSON.parse(value);
-        const sanitized = sanitizeConfigForStorage(parsed);
-        if (sanitized) {
-          const sanitizedStr = JSON.stringify(sanitized);
-          localStorage.setItem(key, sanitizedStr);
-          memoryStorage.set(key, sanitizedStr);
+        const pruned = pruneConfigForLocalStorage(parsed);
+        if (pruned) {
+          const prunedStr = JSON.stringify(pruned);
+          localStorage.setItem(key, prunedStr);
           return true;
         }
       } catch (err) {
-        console.warn(`[safeSetItem] Could not save sanitized config for ${key}:`, err);
+        console.warn(`[safeSetItem] Could not save pruned config for ${key}:`, err);
       }
     }
 

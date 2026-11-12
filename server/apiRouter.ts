@@ -250,7 +250,10 @@ import {
   createOrRenewSubscription,
   getSubscriptions,
   processBillingWebhook,
-  getSaaSHealthMetrics
+  getSaaSHealthMetrics,
+  sanitizeConfigPhotos,
+  resolveClientByIdOrSlug,
+  propagateConfigAliases
 } from './dbStore';
 
 // POST /api/auth/login: Cross-device login check
@@ -318,19 +321,22 @@ apiRouter.get('/wedding-config/:clientId', (req, res) => {
   try {
     const cid = req.params.clientId;
     const db = getServerDb();
-    let config = db.weddingConfigs[cid] || null;
-    if (!config) {
-      const match = db.clients.find(c => 
-        c.id === cid || 
-        c.config?.id === cid || 
-        c.config?.slug === cid || 
-        c.config?.clientId === cid
-      );
-      if (match?.config) {
-        config = match.config;
+    const match = resolveClientByIdOrSlug(db, cid);
+    const candidates = [
+      db.weddingConfigs[cid],
+      match?.config,
+      match ? db.weddingConfigs[match.id] : undefined,
+      match?.config?.slug ? db.weddingConfigs[match.config.slug] : undefined
+    ].filter(Boolean);
+
+    let best = candidates[0] || null;
+    for (const cand of candidates) {
+      if (cand && (!best || (Number(cand.updatedAt) || 0) > (Number(best.updatedAt) || 0))) {
+        best = cand;
       }
     }
-    return res.json({ success: true, config });
+
+    return res.json({ success: true, config: best ? sanitizeConfigPhotos(best) : null });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -341,30 +347,23 @@ apiRouter.post('/wedding-config/:clientId', (req, res) => {
   try {
     const cid = req.params.clientId;
     const config = req.body;
+    if (!config || typeof config !== 'object') {
+      return res.status(400).json({ success: false, error: 'Configuração de casamento inválida.' });
+    }
     const db = getServerDb();
     const now = Date.now();
     const incomingTs = Number(config.updatedAt) || now;
-    const existing = db.weddingConfigs[cid];
+    const match = resolveClientByIdOrSlug(db, cid);
+    const existing = db.weddingConfigs[cid] || (match ? db.weddingConfigs[match.id] : undefined) || match?.config;
     const existingTs = Number(existing?.updatedAt) || 0;
 
     if (!existing || incomingTs >= existingTs) {
       config.updatedAt = Math.max(incomingTs, now);
-      db.weddingConfigs[cid] = config;
-      const client = db.clients.find(c => 
-        c.id === cid || 
-        c.config?.id === cid || 
-        c.config?.slug === cid
-      );
-      if (client) {
-        client.config = config;
-        client.updatedAt = config.updatedAt;
-        if (config.brideGroom?.groomName && config.brideGroom?.brideName) {
-          client.clientName = `${config.brideGroom.groomName} & ${config.brideGroom.brideName}`;
-        }
-      }
+      const savedConfig = propagateConfigAliases(db, cid, config);
       saveServerDb(db);
+      return res.json({ success: true, config: savedConfig });
     }
-    return res.json({ success: true, config: db.weddingConfigs[cid] || config });
+    return res.json({ success: true, config: sanitizeConfigPhotos(existing) });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -467,6 +466,7 @@ apiRouter.post('/clients/:id/toggle-access', (req, res) => {
     const newStatus = client.status === 'Active' ? 'Suspended' : 'Active';
     client.status = newStatus;
     client.accessRevoked = newStatus === 'Suspended';
+    client.updatedAt = Date.now();
     saveServerDb(db);
     return res.json({ success: true, client });
   } catch (err: any) {
@@ -556,7 +556,8 @@ apiRouter.post('/billing/checkout', (req, res) => {
     return res.json({
       success: true,
       message: `Assinatura do plano ${plan} ativada com sucesso!`,
-      subscription: result.subscription
+      subscription: result.subscription,
+      client: result.client
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -577,18 +578,28 @@ apiRouter.post('/billing/subscriptions', (req, res) => {
   }
 });
 
-// POST /api/webhooks/billing: Automated webhook receiver for recurring subscription charges
-apiRouter.post('/webhooks/billing', (req, res) => {
+// Shared EMIS / Billing webhook handler enforcing BILLING_WEBHOOK_SECRET
+function handleBillingWebhookRequest(req: any, res: any) {
   try {
-    const secretHeader = (req.headers['x-kutxi-webhook-secret'] || req.headers['authorization'] || '') as string;
-    const cleanSecret = secretHeader.replace(/^Bearer\s+/i, '').trim();
-    const event = (req.body?.event || req.body?.type || 'subscription.invoice.paid') as string;
+    const rawSecret = (
+      req.headers['x-emis-webhook-secret'] ||
+      req.headers['x-billing-webhook-secret'] ||
+      req.headers['x-kutxi-webhook-secret'] ||
+      req.headers['x-webhook-secret'] ||
+      req.headers['authorization'] ||
+      ''
+    ) as string;
+    const cleanSecret = String(rawSecret).replace(/^Bearer\s+/i, '').trim();
+    const event = String(req.body?.event || req.body?.type || 'emis.payment.confirmed');
     const payload = req.body?.data || req.body;
 
-    const result = processBillingWebhook(event, payload, cleanSecret || undefined);
+    const result = processBillingWebhook(event, payload, cleanSecret);
 
     if (!result.success) {
-      return res.status(400).json(result);
+      return res.status(result.statusCode || 400).json({
+        received: false,
+        ...result
+      });
     }
 
     return res.json({
@@ -598,8 +609,30 @@ apiRouter.post('/webhooks/billing', (req, res) => {
   } catch (err: any) {
     return res.status(500).json({
       received: false,
-      error: `Erro ao processar webhook: ${err.message}`
+      error: `Erro ao processar webhook EMIS: ${err.message}`
     });
+  }
+}
+
+// POST /api/webhooks/emis: Dedicated EMIS billing webhook receiver validating BILLING_WEBHOOK_SECRET
+apiRouter.post('/webhooks/emis', handleBillingWebhookRequest);
+
+// POST /api/webhooks/billing: Legacy alias routed through identical EMIS secret validation
+apiRouter.post('/webhooks/billing', handleBillingWebhookRequest);
+
+// POST /api/billing/emis/simulate: Server-side test trigger for EMIS webhook flow without exposing secret to browser
+apiRouter.post('/billing/emis/simulate', (req, res) => {
+  try {
+    const configuredSecret = (process.env.BILLING_WEBHOOK_SECRET || 'kutxi_billing_secret_2026').trim();
+    const event = String(req.body?.event || 'emis.payment.confirmed');
+    const payload = req.body?.data || req.body;
+    const result = processBillingWebhook(event, payload, configuredSecret);
+    if (!result.success) {
+      return res.status(result.statusCode || 400).json({ received: false, ...result });
+    }
+    return res.json({ received: true, ...result });
+  } catch (err: any) {
+    return res.status(500).json({ received: false, error: err.message });
   }
 });
 

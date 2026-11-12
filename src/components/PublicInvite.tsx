@@ -42,6 +42,8 @@ interface PublicInviteProps {
   onSwitchClient?: (clientId: string) => void;
   onUpdateConfig?: (config: WeddingConfig) => void;
   onNavigateToPlans?: () => void;
+  onBackToDashboard?: () => void;
+  backButtonLabel?: string;
 }
 
 export default function PublicInvite({ 
@@ -62,7 +64,9 @@ export default function PublicInvite({
   allGuests = [],
   onSwitchClient,
   onUpdateConfig,
-  onNavigateToPlans
+  onNavigateToPlans,
+  onBackToDashboard,
+  backButtonLabel = 'Voltar ao Painel dos Noivos'
 }: PublicInviteProps) {
   const [config, setConfig] = useState<WeddingConfig>(initialConfig);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
@@ -651,15 +655,27 @@ export default function PublicInvite({
       )}
 
       {/* Top Banner Navigation Bar - Luminous Frosted Bar */}
-      <header className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-md text-stone-900 dark:text-stone-100 py-3 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40 border-b border-stone-200/70 dark:border-stone-800 text-xs shadow-2xs">
-        <div className="flex items-center gap-2.5">
-          <Heart className="w-4 h-4 text-[#8E2840] fill-[#8E2840] animate-pulse" />
-          <span className="font-serif font-bold text-sm tracking-wider uppercase text-stone-900 dark:text-amber-200">
+      <header className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-md text-stone-900 dark:text-stone-100 py-3 px-4 sm:px-8 flex items-center justify-between gap-3 sticky top-0 z-40 border-b border-stone-200/70 dark:border-stone-800 text-xs shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {!simulatedOnly && onBackToDashboard && (
+            <button
+              type="button"
+              onClick={onBackToDashboard}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-100 border border-stone-200 dark:border-stone-700 transition-all cursor-pointer flex items-center gap-1 shrink-0 shadow-2xs"
+              title={backButtonLabel}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{backButtonLabel}</span>
+              <span className="sm:hidden">Voltar</span>
+            </button>
+          )}
+          <Heart className="w-4 h-4 text-[#8E2840] fill-[#8E2840] animate-pulse shrink-0" />
+          <span className="font-serif font-bold text-sm tracking-wider uppercase text-stone-900 dark:text-amber-200 truncate">
             {groom} & {bride}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {simulatedOnly ? (
             <button
               onClick={() => setShowPhysicalQrModal(true)}
@@ -825,7 +841,7 @@ export default function PublicInvite({
                   </label>
                   <input
                     type="tel"
-                    placeholder="Ex: +244 923 000 000"
+                    placeholder="Ex: +244 9XX XXX XXX"
                     value={guestPhone}
                     onChange={e => setGuestPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs text-stone-900 dark:text-white focus:outline-rose-800"
@@ -1422,29 +1438,31 @@ export default function PublicInvite({
               </div>
 
               {/* Bank & Multicaixa Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 bg-stone-50 dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">
-                      Multicaixa Express (MCX)
-                    </span>
-                    <button
-                      onClick={() => handleCopy(config.giftRegistry?.multicaixaPhone || '+244 923 456 789', 'mcx')}
-                      className="text-[11px] font-bold text-stone-600 dark:text-stone-300 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
-                    >
-                      {copiedBankField === 'mcx' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedBankField === 'mcx' ? 'Copiado!' : 'Copiar'}</span>
-                    </button>
+              <div className={`grid grid-cols-1 ${config.giftRegistry?.multicaixaPhone?.trim() ? 'sm:grid-cols-2' : ''} gap-4 text-xs`}>
+                {Boolean(config.giftRegistry?.multicaixaPhone?.trim()) && (
+                  <div className="p-4 bg-stone-50 dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">
+                        Multicaixa Express (MCX)
+                      </span>
+                      <button
+                        onClick={() => handleCopy(config.giftRegistry!.multicaixaPhone!, 'mcx')}
+                        className="text-[11px] font-bold text-stone-600 dark:text-stone-300 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedBankField === 'mcx' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedBankField === 'mcx' ? 'Copiado!' : 'Copiar'}</span>
+                      </button>
+                    </div>
+                    <div className="font-mono text-base font-bold text-stone-900 dark:text-white">
+                      {config.giftRegistry!.multicaixaPhone}
+                    </div>
                   </div>
-                  <div className="font-mono text-base font-bold text-stone-900 dark:text-white">
-                    {config.giftRegistry?.multicaixaPhone || '+244 923 456 789'}
-                  </div>
-                </div>
+                )}
 
                 <div className="p-4 bg-stone-50 dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-rose-800 dark:text-rose-400 uppercase tracking-wider">
-                      IBAN Bancário ({config.giftRegistry?.bankName || 'BFA'})
+                      IBAN Bancário ({config.giftRegistry?.bankName || 'BFA — Banco de Fomento Angola'})
                     </span>
                     <button
                       onClick={() => handleCopy(config.giftRegistry?.iban || 'AO06 0006 0042 0001 9472 0090 1', 'iban')}
@@ -1457,6 +1475,11 @@ export default function PublicInvite({
                   <div className="font-mono text-xs font-bold text-stone-900 dark:text-white break-all">
                     {config.giftRegistry?.iban || 'AO06 0006 0042 0001 9472 0090 1'}
                   </div>
+                  {(config.giftRegistry?.bankAgency || !config.giftRegistry?.iban) && (
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400">
+                      Agência: {config.giftRegistry?.bankAgency || 'Agência Talatona (0042)'} · Conta: {config.giftRegistry?.bankAccount || '194720090'}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1741,7 +1764,7 @@ export default function PublicInvite({
                 </label>
                 <input
                   type="tel"
-                  placeholder="Ex: +244 923 000 000"
+                  placeholder="Ex: +244 9XX XXX XXX"
                   value={guestPhone}
                   onChange={e => setGuestPhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs text-stone-900 dark:text-white focus:outline-rose-800"
@@ -2188,17 +2211,19 @@ export default function PublicInvite({
                 {/* Bank Info with 1-click Copy */}
                 <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-2">
                   <span className="text-[10px] font-bold uppercase text-amber-900 dark:text-amber-300">
-                    Dados para Transferência (MCX / IBAN)
+                    Dados para Transferência ({config.giftRegistry?.bankName || 'BFA — Banco de Fomento Angola'})
                   </span>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>MCX: <strong>{config.giftRegistry?.multicaixaPhone || '+244 923 456 789'}</strong></span>
-                    <button 
-                      onClick={() => handleCopy(config.giftRegistry?.multicaixaPhone || '+244 923 456 789', 'modal_mcx')}
-                      className="text-amber-800 dark:text-amber-300 font-bold underline cursor-pointer"
-                    >
-                      {copiedBankField === 'modal_mcx' ? 'Copiado!' : 'Copiar'}
-                    </button>
-                  </div>
+                  {Boolean(config.giftRegistry?.multicaixaPhone?.trim()) && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span>MCX: <strong>{config.giftRegistry!.multicaixaPhone}</strong></span>
+                      <button 
+                        onClick={() => handleCopy(config.giftRegistry!.multicaixaPhone!, 'modal_mcx')}
+                        className="text-amber-800 dark:text-amber-300 font-bold underline cursor-pointer"
+                      >
+                        {copiedBankField === 'modal_mcx' ? 'Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-xs">
                     <span className="truncate pr-2">IBAN: <strong className="font-mono text-[11px]">{config.giftRegistry?.iban || 'AO06 0006 0042 0001 9472 0090 1'}</strong></span>
                     <button 

@@ -37,7 +37,6 @@ export default function AuthModal({
 }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   // Login State
   const [loginUser, setLoginUser] = useState('');
@@ -47,16 +46,18 @@ export default function AuthModal({
   const [showGooglePrompt, setShowGooglePrompt] = useState(false);
   const [googleEmailInput, setGoogleEmailInput] = useState('');
 
-  // Clear any sticky input fields whenever the modal opens
+  // Always clear sticky credentials when modal opens or closes
   useEffect(() => {
+    setLoginUser('');
+    setLoginPass('');
+    setLoginError('');
+    setGoogleEmailInput('');
+    setShowGooglePrompt(false);
+    setShowPassword(false);
     if (isOpen) {
-      setLoginUser('');
-      setLoginPass('');
-      setLoginError('');
-      setGoogleEmailInput('');
-      setShowGooglePrompt(false);
+      setActiveTab(initialTab);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
   // Register State
   const [regGroomName, setRegGroomName] = useState('');
@@ -102,7 +103,9 @@ export default function AuthModal({
       (cleanUser.toLowerCase() === 'ki-eventos' && cleanPass === 'kieventos123')
     ) {
       setIsLoginLoading(false);
-      onLoginSuccess('superadmin', 'system', 'superadmin', rememberMe);
+      setLoginUser('');
+      setLoginPass('');
+      onLoginSuccess('superadmin', 'system', 'superadmin', false);
       onClose();
       return;
     }
@@ -111,17 +114,6 @@ export default function AuthModal({
     try {
       const serverRes = await dbService.auth.login(cleanUser, cleanPass);
       if (serverRes.success && serverRes.user) {
-        // Hydrate local cache with client, config, and guests from server
-        if (serverRes.client) {
-          try {
-            const rawClients = localStorage.getItem('kutxi_clients');
-            const list = rawClients ? JSON.parse(rawClients) : [];
-            if (!list.some((c: any) => c.id === serverRes.client?.id)) {
-              localStorage.setItem('kutxi_clients', JSON.stringify([serverRes.client, ...list]));
-            }
-          } catch (e) {}
-        }
-
         if (serverRes.config) {
           try {
             localStorage.setItem(`kutxi_wedding_config_${serverRes.user.clientId}`, JSON.stringify(serverRes.config));
@@ -135,12 +127,11 @@ export default function AuthModal({
         }
 
         setIsLoginLoading(false);
-        onLoginSuccess(serverRes.user.username, serverRes.user.clientId, serverRes.user.role || 'couple', rememberMe);
+        setLoginUser('');
+        setLoginPass('');
+        onLoginSuccess(serverRes.user.username, serverRes.user.clientId, serverRes.user.role || 'couple', false);
         onClose();
         return;
-      } else if (serverRes.error && !serverRes.error.includes('comunicação')) {
-        // Server returned an explicit auth rejection
-        // Still check local accounts as fallback before failing
       }
     } catch (e) {
       console.warn('[handleLoginSubmit] Server auth error:', e);
@@ -152,7 +143,9 @@ export default function AuthModal({
     );
     if (foundAccount) {
       setIsLoginLoading(false);
-      onLoginSuccess(foundAccount.username, foundAccount.clientId, foundAccount.role || 'couple', rememberMe);
+      setLoginUser('');
+      setLoginPass('');
+      onLoginSuccess(foundAccount.username, foundAccount.clientId, foundAccount.role || 'couple', false);
       onClose();
       return;
     }
@@ -313,10 +306,6 @@ export default function AuthModal({
         });
       }
 
-      try {
-        localStorage.setItem('kutxi_user_accounts', JSON.stringify(updatedAccounts));
-      } catch (e) {}
-
       // Sincroniza unificação com o servidor em segundo plano
       dbService.serverSync.push({
         userAccounts: updatedAccounts,
@@ -325,7 +314,8 @@ export default function AuthModal({
 
       setIsLoginLoading(false);
       setShowGooglePrompt(false);
-      onLoginSuccess(unifiedUsername, unifiedClientId, unifiedRole, rememberMe);
+      setGoogleEmailInput('');
+      onLoginSuccess(unifiedUsername, unifiedClientId, unifiedRole, false);
       onClose();
       return;
     }
@@ -385,8 +375,9 @@ export default function AuthModal({
 
     setIsLoginLoading(false);
     setShowGooglePrompt(false);
+    setGoogleEmailInput('');
     onRegisterSuccess(newClient, user1, user2);
-    onLoginSuccess(user1.username, newClientId, 'couple', rememberMe);
+    onLoginSuccess(user1.username, newClientId, 'couple', false);
     onClose();
   };
 
@@ -479,6 +470,8 @@ export default function AuthModal({
               </label>
               <input
                 type="email"
+                name="kutxi_g_email"
+                autoComplete="off"
                 required
                 value={googleEmailInput}
                 onChange={e => setGoogleEmailInput(e.target.value)}
@@ -486,16 +479,6 @@ export default function AuthModal({
                 className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-rose-800 font-medium"
               />
             </div>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none py-1">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-rose-800 focus:ring-rose-800 accent-rose-800 cursor-pointer"
-              />
-              <span className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">Lembrar de mim neste dispositivo</span>
-            </label>
 
             {loginError && (
               <div className="p-2.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-xl text-[11px]">
@@ -564,6 +547,7 @@ export default function AuthModal({
                 </span>
                 <input
                   type="text"
+                  name="kutxi_access_id"
                   required
                   autoComplete="off"
                   placeholder="Ex: superadmin ou noiva.sofia"
@@ -593,6 +577,7 @@ export default function AuthModal({
                 </span>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  name="kutxi_access_secret"
                   required
                   autoComplete="new-password"
                   placeholder="Palavra-passe"
@@ -617,18 +602,6 @@ export default function AuthModal({
                 <span>{loginError}</span>
               </div>
             )}
-
-            <div className="flex items-center justify-between py-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-rose-800 focus:ring-rose-800 accent-rose-800 cursor-pointer"
-                />
-                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">Lembrar de mim</span>
-              </label>
-            </div>
 
             <button
               type="submit"
@@ -766,7 +739,7 @@ export default function AuthModal({
                 <input
                   type="tel"
                   required
-                  placeholder="+244 923 000 000"
+                  placeholder="+244 9XX XXX XXX"
                   value={regPhone}
                   onChange={e => setRegPhone(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-white focus:outline-rose-800 font-medium font-mono"

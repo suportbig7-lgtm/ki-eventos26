@@ -89,9 +89,13 @@ export const dbService = {
     async save(clientId: string, config: WeddingConfig): Promise<void> {
       try {
         const sanitized = sanitizeConfigForStorage(config) || config;
-        safeSetItem(`kutxi_wedding_config_${clientId}`, JSON.stringify(sanitized));
+        const fullStr = JSON.stringify(sanitized);
+        safeSetItem(`kutxi_wedding_config_${clientId}`, fullStr);
+        if (sanitized.slug && sanitized.slug !== clientId) {
+          safeSetItem(`kutxi_wedding_config_${sanitized.slug}`, fullStr);
+        }
         if (clientId === 'client_1') {
-          safeSetItem('kutxi_wedding_config', JSON.stringify(sanitized));
+          safeSetItem('kutxi_wedding_config', fullStr);
         }
 
         // Instant event notification for active windows
@@ -107,11 +111,12 @@ export const dbService = {
           try {
             const list: ClientWeddingSaaS[] = JSON.parse(savedClients);
             const updated = list.map(c => {
-              if (c.id === clientId || c.config?.id === clientId) {
+              if (c.id === clientId || c.config?.id === clientId || (sanitized.slug && c.config?.slug === sanitized.slug)) {
                 return {
                   ...c,
-                  clientName: `${config.brideGroom?.groomName || 'Noivo'} & ${config.brideGroom?.brideName || 'Noiva'}`,
-                  weddingDate: config.date ? config.date.split('T')[0] : c.weddingDate,
+                  clientName: `${sanitized.brideGroom?.groomName || 'Noivo'} & ${sanitized.brideGroom?.brideName || 'Noiva'}`,
+                  weddingDate: sanitized.date ? sanitized.date.split('T')[0] : c.weddingDate,
+                  updatedAt: sanitized.updatedAt || Date.now(),
                   config: sanitized
                 };
               }

@@ -161,7 +161,7 @@ export async function generateMobileWeddingPassPdf(config: WeddingConfig, guest:
 
   // EMBEDDED HIGH-RES QR CODE FOR SECURITY CHECK-IN
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const inviteUrl = `${origin}/?invite=${guest.rsvpToken}&clientId=${config.clientId || 'client_1'}`;
+  const inviteUrl = buildPortableInviteLink(config, origin, guest.rsvpToken);
 
   const qrSize = 42; // mm
   const qrX = (width - qrSize) / 2;
@@ -479,7 +479,7 @@ export async function generateWeddingInvitationPdf(config: WeddingConfig, guest?
     doc.text(`Token: ${guest.rsvpToken}`, 20, curY + (guest.companionName ? 28.5 : 26));
 
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const inviteLink = `${origin}/?invite=${guest.rsvpToken}&clientId=${config.clientId || 'client_1'}`;
+    const inviteLink = buildPortableInviteLink(config, origin, guest.rsvpToken);
 
     doc.setTextColor(120, 120, 120);
     doc.setFont('times', 'normal');

@@ -119,7 +119,7 @@ export default function UpgradePlanModal({
     const groom = config.brideGroom?.groomName || 'Noivo';
     const bride = config.brideGroom?.brideName || 'Noiva';
     const msg = `Olá Kutxi! Gostaria de ativar a adesão ao *${tier.name}* (${tier.price}) para o casamento de *${groom} & ${bride}*.\n\nEnvio em anexo o comprovativo de transferência para validação e liberação dos recursos. Obrigado!`;
-    window.open(`https://api.whatsapp.com/send?phone=+244923456789&text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   return (
@@ -263,61 +263,29 @@ export default function UpgradePlanModal({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                {/* Multicaixa Express */}
-                <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2">
-                  <div className="flex items-center gap-2 text-rose-800 dark:text-rose-400 font-bold">
-                    <Smartphone className="w-4 h-4" />
-                    <span>Opção 1: Multicaixa Express (MCX)</span>
-                  </div>
-                  <p className="text-slate-500 text-[11px]">
-                    Envie o valor de <strong>{selectedTier.price}</strong> para o número oficial da Kutxi:
-                  </p>
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl font-mono text-xs font-bold">
-                    <span>+244 923 456 789</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy('923456789', 'mcx')}
-                      className="text-slate-400 hover:text-rose-700 p-1"
-                    >
-                      {copiedField === 'mcx' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <span className="text-[10px] text-slate-400 block">Destinatário: Kutxi Casamentos & Tecnologia Lda</span>
-                </div>
-
-                {/* Transferência Bancária */}
+              <div className="grid grid-cols-1 gap-4 text-xs">
+                {/* Transferência Bancária BFA */}
                 <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2">
                   <div className="flex items-center gap-2 text-rose-800 dark:text-rose-400 font-bold">
                     <CreditCard className="w-4 h-4" />
-                    <span>Opção 2: Transferência Bancária (BAI / BFA)</span>
+                    <span>Transferência Bancária (BFA — Banco de Fomento Angola)</span>
                   </div>
                   <p className="text-slate-500 text-[11px]">
-                    Transfira para as contas empresariais em Kwanzas:
+                    Transfira o valor de <strong>{selectedTier.price}</strong> para a conta oficial em Kwanzas:
                   </p>
                   <div className="space-y-1.5 font-mono text-[11px]">
-                    <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <span><strong>BAI:</strong> AO06.0040.0000.1234.5678.9012.3</span>
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <span><strong>BFA (Agência Talatona 0042):</strong> AO06 0006 0042 0001 9472 0090 1</span>
                       <button
                         type="button"
-                        onClick={() => handleCopy('AO06.0040.0000.1234.5678.9012.3', 'bai')}
-                        className="text-slate-400 hover:text-rose-700 p-1"
-                      >
-                        {copiedField === 'bai' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <span><strong>BFA:</strong> AO06.0006.0000.9876.5432.1098.7</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('AO06.0006.0000.9876.5432.1098.7', 'bfa')}
+                        onClick={() => handleCopy('AO06 0006 0042 0001 9472 0090 1', 'bfa')}
                         className="text-slate-400 hover:text-rose-700 p-1"
                       >
                         {copiedField === 'bfa' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
-                  <span className="text-[10px] text-slate-400 block">Titular: Kutxi Casamentos & Tecnologia Lda</span>
+                  <span className="text-[10px] text-slate-400 block">Conta: 194720090 · BFA — Banco de Fomento Angola</span>
                 </div>
               </div>
 

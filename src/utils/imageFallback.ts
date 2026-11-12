@@ -29,12 +29,12 @@ export const WEDDING_FALLBACK_IMAGES = {
   ],
 
   // Gift Registry Categories
-  giftEletro: 'https://images.unsplash.com/photo-1594385208974-2e75f9d8a8be?auto=format&fit=crop&q=80&w=600',
-  giftCozinha: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=600',
-  giftMesa: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=600',
-  giftViagem: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=600',
-  giftQuarto: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=600',
-  giftExperiencias: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=600',
+  giftEletro: '/assets/aistudio/capa_eeb23baf.jpeg',
+  giftCozinha: '/assets/aistudio/nossa_historia_0790376f.jpeg',
+  giftMesa: '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+  giftViagem: '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+  giftQuarto: '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+  giftExperiencias: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
   giftDefault: '/assets/aistudio/capa_eeb23baf.jpeg',
 
   // Avatars
@@ -55,11 +55,8 @@ export function getSafeImageUrl(url: string | undefined | null, type: keyof type
 
   const cleanUrl = url.trim();
 
-  // If the image is an old generic Unsplash portrait/couple placeholder, replace with root real couple photography
-  if (
-    cleanUrl.includes('images.unsplash.com') && 
-    (type === 'groom' || type === 'bride' || type === 'couple' || type === 'cover' || type === 'story' || type === 'gallery')
-  ) {
+  // Replace any generic Unsplash placeholder with real local couple photography
+  if (cleanUrl.includes('images.unsplash.com')) {
     return defaultFallbackUrl;
   }
 

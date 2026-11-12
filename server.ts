@@ -14,7 +14,8 @@ const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // Mount API router
   app.use('/api', apiRouter);

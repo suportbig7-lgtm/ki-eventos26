@@ -43,63 +43,225 @@ function getDbFilePath(): string {
 let cachedDb: ServerDatabase | null = null;
 let dbFilePath = '';
 
+const INVENTED_PHONES = new Set([
+  '+244 923 456 789',
+  '923 456 789',
+  '923456789',
+  '+244 923 888 777',
+  '+244 923 111 222',
+  '+244 923 555 666',
+  '+244 923 000 000'
+]);
+
+const INVENTED_IBANS = new Set([
+  'AO06 0040 0000 1234 5678 9012 3',
+  'AO06004000001234567890123',
+  'AO06 0006 0000 9876 5432 1012 4',
+  'AO06 0055 0000 4567 8901 2345 6',
+  'AO06.0040.0000.1234.5678.9012.3',
+  'AO06.0006.0000.9876.5432.1098.7'
+]);
+
+export const DEFAULT_BFA_BANKING = {
+  bankName: 'BFA — Banco de Fomento Angola',
+  bankAgency: 'Agência Talatona (0042)',
+  bankAccount: '194720090',
+  iban: 'AO06 0006 0042 0001 9472 0090 1'
+};
+
 export function sanitizeConfigPhotos(cfg: WeddingConfig): WeddingConfig {
   if (!cfg) return cfg;
   const unsplashPhotoPrefix = 'images.unsplash.com';
-  const c = { ...cfg };
+  const c: WeddingConfig = { ...cfg };
+  const allowBlankPhotos = Boolean(c.isNewProfile);
+
+  const scrubImg = (url: string | undefined, fallback: string): string => {
+    if (!url || typeof url !== 'string' || url.trim() === '') {
+      return allowBlankPhotos ? '' : fallback;
+    }
+    if (url.includes(unsplashPhotoPrefix)) {
+      return allowBlankPhotos ? '' : fallback;
+    }
+    return url;
+  };
+
   if (c.brideGroom) {
-    c.brideGroom = { ...c.brideGroom };
-    if (!c.brideGroom.groomPhoto || c.brideGroom.groomPhoto.includes(unsplashPhotoPrefix)) {
-      c.brideGroom.groomPhoto = '/assets/aistudio/noivo_cb7dee44.jpeg';
-    }
-    if (!c.brideGroom.bridePhoto || c.brideGroom.bridePhoto.includes(unsplashPhotoPrefix)) {
-      c.brideGroom.bridePhoto = '/assets/aistudio/noivaa_f3d108c5.jpeg';
-    }
-    if (!c.brideGroom.couplePhoto || c.brideGroom.couplePhoto.includes(unsplashPhotoPrefix)) {
-      c.brideGroom.couplePhoto = '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg';
-    }
+    c.brideGroom = {
+      ...c.brideGroom,
+      groomPhoto: scrubImg(c.brideGroom.groomPhoto, '/assets/aistudio/noivo_cb7dee44.jpeg'),
+      bridePhoto: scrubImg(c.brideGroom.bridePhoto, '/assets/aistudio/noivaa_f3d108c5.jpeg'),
+      couplePhoto: scrubImg(c.brideGroom.couplePhoto, '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg')
+    };
   }
+
   if (c.media) {
-    c.media = { ...c.media };
-    if (!c.media.coverImage || c.media.coverImage.includes(unsplashPhotoPrefix)) {
-      c.media.coverImage = '/assets/aistudio/capa_eeb23baf.jpeg';
+    c.media = {
+      ...c.media,
+      coverImage: scrubImg(c.media.coverImage, '/assets/aistudio/capa_eeb23baf.jpeg'),
+      storyImage: scrubImg(c.media.storyImage, '/assets/aistudio/nossa_historia_0790376f.jpeg'),
+      photos: Array.isArray(c.media.photos) && c.media.photos.length > 0
+        ? c.media.photos
+            .map((p, idx) => {
+              const fallbacks = [
+                '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+                '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+                '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+                '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+                '/assets/aistudio/capa_eeb23baf.jpeg',
+                '/assets/aistudio/nossa_historia_0790376f.jpeg'
+              ];
+              return scrubImg(p, fallbacks[idx % fallbacks.length]);
+            })
+            .filter(Boolean)
+        : (allowBlankPhotos ? [] : [
+            '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
+            '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
+            '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
+            '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+            '/assets/aistudio/capa_eeb23baf.jpeg',
+            '/assets/aistudio/nossa_historia_0790376f.jpeg'
+          ])
+    };
+  }
+
+  if (c.venue && Array.isArray(c.venue.photos)) {
+    c.venue = {
+      ...c.venue,
+      photos: c.venue.photos
+        .map((p, idx) => scrubImg(p, idx % 2 === 0 ? '/assets/aistudio/capa_eeb23baf.jpeg' : '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg'))
+        .filter(Boolean)
+    };
+  }
+
+  if (c.giftRegistry) {
+    const gr = { ...c.giftRegistry };
+    if (gr.multicaixaPhone && INVENTED_PHONES.has(gr.multicaixaPhone.trim())) {
+      gr.multicaixaPhone = '';
     }
-    if (!c.media.storyImage || c.media.storyImage.includes(unsplashPhotoPrefix)) {
-      c.media.storyImage = '/assets/aistudio/nossa_historia_0790376f.jpeg';
+    if (gr.pixKey && INVENTED_PHONES.has(gr.pixKey.trim())) {
+      gr.pixKey = '';
     }
-    if (
-      !Array.isArray(c.media.photos) ||
-      c.media.photos.length === 0 ||
-      c.media.photos.some(p => p && p.includes(unsplashPhotoPrefix))
-    ) {
-      c.media.photos = [
+    if (!gr.iban || INVENTED_IBANS.has(gr.iban.trim())) {
+      gr.iban = DEFAULT_BFA_BANKING.iban;
+      gr.bankName = DEFAULT_BFA_BANKING.bankName;
+      gr.bankAgency = DEFAULT_BFA_BANKING.bankAgency;
+      gr.bankAccount = DEFAULT_BFA_BANKING.bankAccount;
+    } else if (!gr.bankName || gr.bankName.includes('BAI')) {
+      gr.bankName = DEFAULT_BFA_BANKING.bankName;
+    }
+    if (Array.isArray(gr.registryItems)) {
+      const giftFallbacks = [
+        '/assets/aistudio/capa_eeb23baf.jpeg',
+        '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
+        '/assets/aistudio/nossa_historia_0790376f.jpeg',
         '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
         '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
-        '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
-        '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
-        '/assets/aistudio/capa_eeb23baf.jpeg',
-        '/assets/aistudio/nossa_historia_0790376f.jpeg'
+        '/assets/aistudio/galeria_do_casal_0790376f.jpeg'
       ];
+      gr.registryItems = gr.registryItems.map((item, idx) => ({
+        ...item,
+        imageUrl: item.imageUrl && !item.imageUrl.includes(unsplashPhotoPrefix)
+          ? item.imageUrl
+          : giftFallbacks[idx % giftFallbacks.length],
+        contributors: Array.isArray(item.contributors)
+          ? item.contributors.map(contrib => ({
+              ...contrib,
+              avatarUrl: contrib.avatarUrl && !contrib.avatarUrl.includes(unsplashPhotoPrefix) ? contrib.avatarUrl : ''
+            }))
+          : []
+      }));
+    }
+    c.giftRegistry = gr;
+  }
+
+  if (c.contactInfo) {
+    c.contactInfo = {
+      ...c.contactInfo,
+      phone: c.contactInfo.phone && INVENTED_PHONES.has(c.contactInfo.phone.trim()) ? '' : c.contactInfo.phone
+    };
+  }
+
+  if (Array.isArray(c.muralComments)) {
+    c.muralComments = c.muralComments.map(m => ({
+      ...m,
+      avatarUrl: m.avatarUrl && !m.avatarUrl.includes(unsplashPhotoPrefix) ? m.avatarUrl : ''
+    }));
+  }
+
+  return c;
+}
+
+export function resolveClientByIdOrSlug(db: ServerDatabase, idOrSlug: string): ClientWeddingSaaS | undefined {
+  const clean = (idOrSlug || '').trim().toLowerCase();
+  if (!clean) return undefined;
+  return db.clients.find(c =>
+    c.id.toLowerCase() === clean ||
+    (c.config?.id && c.config.id.toLowerCase() === clean) ||
+    (c.config?.slug && c.config.slug.toLowerCase() === clean) ||
+    (c.config?.clientId && c.config.clientId.toLowerCase() === clean) ||
+    (clean === 'client_1' && c.id === 'client_joao_alice')
+  );
+}
+
+export function propagateConfigAliases(db: ServerDatabase, keyOrId: string, config: WeddingConfig): WeddingConfig {
+  const sanitized = sanitizeConfigPhotos(config);
+  const resolvedClient = resolveClientByIdOrSlug(db, keyOrId) ||
+    (sanitized.clientId ? resolveClientByIdOrSlug(db, sanitized.clientId) : undefined) ||
+    (sanitized.slug ? resolveClientByIdOrSlug(db, sanitized.slug) : undefined);
+
+  const keysToSync = new Set<string>([keyOrId]);
+  if (sanitized.clientId && sanitized.clientId !== 'system') keysToSync.add(sanitized.clientId);
+  if (sanitized.slug && sanitized.slug !== 'system') keysToSync.add(sanitized.slug);
+  if (resolvedClient) {
+    keysToSync.add(resolvedClient.id);
+    if (resolvedClient.config?.slug) keysToSync.add(resolvedClient.config.slug);
+    if (resolvedClient.config?.id) keysToSync.add(resolvedClient.config.id);
+    resolvedClient.config = sanitized;
+    resolvedClient.updatedAt = Number(sanitized.updatedAt) || Date.now();
+    if (resolvedClient.id === 'client_joao_alice' || resolvedClient.id === 'client_1793020883177') {
+      keysToSync.add('client_joao_alice');
+      keysToSync.add('joao-alice');
+      keysToSync.add('client_1793020883177');
+      const companion = db.clients.find(c =>
+        c.id !== resolvedClient.id && (c.id === 'client_joao_alice' || c.id === 'client_1793020883177')
+      );
+      if (companion) {
+        companion.config = { ...sanitized, id: companion.id, clientId: companion.id, slug: companion.id === 'client_joao_alice' ? 'joao-alice' : companion.id };
+        companion.updatedAt = resolvedClient.updatedAt;
+      }
+    }
+    if (sanitized.brideGroom?.groomName && sanitized.brideGroom?.brideName) {
+      resolvedClient.clientName = `${sanitized.brideGroom.groomName} & ${sanitized.brideGroom.brideName}`;
+    }
+    if (sanitized.date) {
+      resolvedClient.weddingDate = sanitized.date.split('T')[0];
     }
   }
-  return c;
+
+  for (const k of keysToSync) {
+    if (k && k !== 'system') {
+      db.weddingConfigs[k] = sanitized;
+    }
+  }
+
+  return sanitized;
 }
 
 function buildInitialDatabase(): ServerDatabase {
   const configs: Record<string, WeddingConfig> = {
-    client_1: INITIAL_WEDDING_CONFIG,
-    client_osvaldo_nicidia: CONFIG_OSVALDO_NICIDIA,
-    'osvaldo-nicidia': CONFIG_OSVALDO_NICIDIA,
-    client_pedro_pureza: CONFIG_PEDRO_PUREZA,
-    'pedro-pureza': CONFIG_PEDRO_PUREZA,
-    client_joao_alice: CONFIG_JOAO_ALICE,
-    'joao-alice': CONFIG_JOAO_ALICE,
-    client_1793020883177: {
+    client_1: sanitizeConfigPhotos(INITIAL_WEDDING_CONFIG),
+    client_osvaldo_nicidia: sanitizeConfigPhotos(CONFIG_OSVALDO_NICIDIA),
+    'osvaldo-nicidia': sanitizeConfigPhotos(CONFIG_OSVALDO_NICIDIA),
+    client_pedro_pureza: sanitizeConfigPhotos(CONFIG_PEDRO_PUREZA),
+    'pedro-pureza': sanitizeConfigPhotos(CONFIG_PEDRO_PUREZA),
+    client_joao_alice: sanitizeConfigPhotos(CONFIG_JOAO_ALICE),
+    'joao-alice': sanitizeConfigPhotos(CONFIG_JOAO_ALICE),
+    client_1793020883177: sanitizeConfigPhotos({
       ...CONFIG_JOAO_ALICE,
       id: 'client_1793020883177',
       clientId: 'client_1793020883177',
       slug: 'client_1793020883177'
-    }
+    })
   };
 
   const guestsMap: Record<string, Guest[]> = {
@@ -121,8 +283,8 @@ function buildInitialDatabase(): ServerDatabase {
       currency: 'AOA',
       status: 'active',
       interval: 'monthly',
-      paymentMethod: 'multicaixa_express',
-      paymentPhone: '+244 923 888 777',
+      paymentMethod: 'bank_reference',
+      paymentReference: 'BFA-194720090',
       nextBillingDate: new Date(Date.now() + 28 * 24 * 3600 * 1000).toISOString().split('T')[0],
       lastPaymentDate: new Date().toISOString().split('T')[0],
       autoRenew: true,
@@ -141,7 +303,7 @@ function buildInitialDatabase(): ServerDatabase {
       status: 'active',
       interval: 'monthly',
       paymentMethod: 'bank_reference',
-      paymentReference: 'REF-98721345',
+      paymentReference: 'BFA-194720090',
       nextBillingDate: new Date(Date.now() + 22 * 24 * 3600 * 1000).toISOString().split('T')[0],
       lastPaymentDate: new Date().toISOString().split('T')[0],
       autoRenew: true,
@@ -159,8 +321,8 @@ function buildInitialDatabase(): ServerDatabase {
       currency: 'AOA',
       status: 'active',
       interval: 'monthly',
-      paymentMethod: 'multicaixa_express',
-      paymentPhone: '+244 923 555 666',
+      paymentMethod: 'bank_reference',
+      paymentReference: 'BFA-194720090',
       nextBillingDate: new Date(Date.now() + 25 * 24 * 3600 * 1000).toISOString().split('T')[0],
       lastPaymentDate: new Date().toISOString().split('T')[0],
       autoRenew: true,
@@ -172,7 +334,7 @@ function buildInitialDatabase(): ServerDatabase {
 
   return {
     userAccounts: INITIAL_USER_ACCOUNTS,
-    clients: INITIAL_CLIENTS,
+    clients: INITIAL_CLIENTS.map(c => ({ ...c, config: sanitizeConfigPhotos(c.config) })),
     weddingConfigs: configs,
     guests: guestsMap,
     saasPlans: DEFAULT_PLANS,
@@ -210,8 +372,8 @@ export function getServerDb(): ServerDatabase {
               currency: 'AOA',
               status: 'active',
               interval: 'monthly',
-              paymentMethod: 'multicaixa_express',
-              paymentPhone: '+244 923 888 777',
+              paymentMethod: 'bank_reference',
+              paymentReference: 'BFA-194720090',
               nextBillingDate: new Date(Date.now() + 28 * 24 * 3600 * 1000).toISOString().split('T')[0],
               lastPaymentDate: new Date().toISOString().split('T')[0],
               autoRenew: true,
@@ -230,7 +392,7 @@ export function getServerDb(): ServerDatabase {
               status: 'active',
               interval: 'monthly',
               paymentMethod: 'bank_reference',
-              paymentReference: 'REF-98721345',
+              paymentReference: 'BFA-194720090',
               nextBillingDate: new Date(Date.now() + 22 * 24 * 3600 * 1000).toISOString().split('T')[0],
               lastPaymentDate: new Date().toISOString().split('T')[0],
               autoRenew: true,
@@ -248,8 +410,8 @@ export function getServerDb(): ServerDatabase {
               currency: 'AOA',
               status: 'active',
               interval: 'monthly',
-              paymentMethod: 'multicaixa_express',
-              paymentPhone: '+244 923 555 666',
+              paymentMethod: 'bank_reference',
+              paymentReference: 'BFA-194720090',
               nextBillingDate: new Date(Date.now() + 25 * 24 * 3600 * 1000).toISOString().split('T')[0],
               lastPaymentDate: new Date().toISOString().split('T')[0],
               autoRenew: true,
@@ -258,6 +420,11 @@ export function getServerDb(): ServerDatabase {
               invoicesCount: 1
             }
           ];
+        } else {
+          parsed.subscriptions = parsed.subscriptions.map(sub => ({
+            ...sub,
+            paymentPhone: sub.paymentPhone && INVENTED_PHONES.has(sub.paymentPhone.trim()) ? undefined : sub.paymentPhone
+          }));
         }
         if (!parsed.weddingConfigs) {
           parsed.weddingConfigs = {};
@@ -267,12 +434,17 @@ export function getServerDb(): ServerDatabase {
         INITIAL_CLIENTS.forEach(ic => {
           const idx = parsed.clients.findIndex(c => c.id === ic.id);
           if (idx < 0) {
-            parsed.clients.push(ic);
+            parsed.clients.push({ ...ic, config: sanitizeConfigPhotos(ic.config) });
           } else {
             const icTs = getTs(ic);
             const exTs = getTs(parsed.clients[idx]);
             if (icTs > exTs) {
-              parsed.clients[idx] = { ...parsed.clients[idx], ...ic, updatedAt: icTs };
+              parsed.clients[idx] = {
+                ...parsed.clients[idx],
+                ...ic,
+                config: sanitizeConfigPhotos(ic.config),
+                updatedAt: icTs
+              };
             }
           }
           if (ic.config) {
@@ -280,31 +452,31 @@ export function getServerDb(): ServerDatabase {
             const icCfgTs = getTs(ic.config);
             const curCfgTs = getTs(curCfg);
             if (!curCfg || !curCfg.brideGroom?.groomName || icCfgTs > curCfgTs) {
-              parsed.weddingConfigs[ic.id] = ic.config;
-              if (ic.config.slug) {
-                parsed.weddingConfigs[ic.config.slug] = ic.config;
+              const cleanIc = sanitizeConfigPhotos(ic.config);
+              parsed.weddingConfigs[ic.id] = cleanIc;
+              if (cleanIc.slug) {
+                parsed.weddingConfigs[cleanIc.slug] = cleanIc;
               }
             }
           }
         });
 
-        // Ensure primary slug aliases exist and have the real couple photography
-        parsed.weddingConfigs['joao-alice'] = sanitizeConfigPhotos(parsed.weddingConfigs['joao-alice'] || CONFIG_JOAO_ALICE);
-        parsed.weddingConfigs['client_joao_alice'] = sanitizeConfigPhotos(parsed.weddingConfigs['client_joao_alice'] || CONFIG_JOAO_ALICE);
-        parsed.weddingConfigs['client_1793020883177'] = sanitizeConfigPhotos(parsed.weddingConfigs['client_1793020883177'] || {
-          ...CONFIG_JOAO_ALICE,
-          id: 'client_1793020883177',
-          clientId: 'client_1793020883177',
-          slug: 'client_1793020883177'
-        });
-
-        // Sanitize all weddingConfigs to replace generic unsplash photos with real couple photos
+        // Sanitize all weddingConfigs and client configs
         for (const [k, cfg] of Object.entries(parsed.weddingConfigs)) {
           parsed.weddingConfigs[k] = sanitizeConfigPhotos(cfg);
         }
         for (const cl of parsed.clients) {
           if (cl.config) {
             cl.config = sanitizeConfigPhotos(cl.config);
+            const cfgKey = cl.config.slug || cl.id;
+            const cfgTs = getTs(cl.config);
+            const mapTs = getTs(parsed.weddingConfigs[cl.id]);
+            if (cfgTs >= mapTs) {
+              parsed.weddingConfigs[cl.id] = cl.config;
+              if (cfgKey) parsed.weddingConfigs[cfgKey] = cl.config;
+            } else if (parsed.weddingConfigs[cl.id]) {
+              cl.config = parsed.weddingConfigs[cl.id];
+            }
           }
         }
 
@@ -544,6 +716,7 @@ export function syncWithServer(payload: {
   if (payload.clients && Array.isArray(payload.clients)) {
     for (const incoming of payload.clients) {
       if (!incoming?.id) continue;
+      const cleanConfig = incoming.config ? sanitizeConfigPhotos(incoming.config) : undefined;
       const idx = db.clients.findIndex(c => c.id === incoming.id);
       const incomingTs = getTs(incoming);
 
@@ -551,68 +724,61 @@ export function syncWithServer(payload: {
         const existing = db.clients[idx];
         const existingTs = getTs(existing);
 
-        // Only overwrite if incoming version has equal or newer timestamp
-        if (incomingTs >= existingTs) {
-          const mergedUpdatedAt = Math.max(incomingTs, Date.now());
+        // Only overwrite client metadata when incoming is strictly newer, or equal without clobbering server status/plan
+        if (incomingTs > existingTs) {
+          const mergedUpdatedAt = incomingTs || Date.now();
           db.clients[idx] = { 
             ...existing, 
-            ...incoming, 
+            ...incoming,
+            config: cleanConfig && (getTs(cleanConfig) >= getTs(existing.config)) ? cleanConfig : existing.config,
             updatedAt: mergedUpdatedAt 
           };
 
-          if (incoming.config) {
-            const incomingConfigTs = getTs(incoming.config) || incomingTs;
+          if (cleanConfig) {
+            const incomingConfigTs = getTs(cleanConfig) || incomingTs;
             const existingConfigTs = getTs(db.weddingConfigs[incoming.id]);
             if (incomingConfigTs >= existingConfigTs) {
-              db.weddingConfigs[incoming.id] = {
-                ...incoming.config,
+              propagateConfigAliases(db, incoming.id, {
+                ...cleanConfig,
                 updatedAt: Math.max(incomingConfigTs, mergedUpdatedAt)
-              };
+              });
             }
           }
+        } else if (cleanConfig && getTs(cleanConfig) > getTs(db.weddingConfigs[incoming.id])) {
+          propagateConfigAliases(db, incoming.id, cleanConfig);
         }
-        // If existingTs > incomingTs: retain newer server version, ignore outdated incoming
       } else {
         const newTs = incomingTs || Date.now();
         db.clients.push({
           ...incoming,
+          config: cleanConfig || incoming.config,
           updatedAt: newTs
         });
-        if (incoming.config) {
-          db.weddingConfigs[incoming.id] = {
-            ...incoming.config,
-            updatedAt: getTs(incoming.config) || newTs
-          };
+        if (cleanConfig) {
+          propagateConfigAliases(db, incoming.id, {
+            ...cleanConfig,
+            updatedAt: getTs(cleanConfig) || newTs
+          });
         }
       }
     }
   }
 
-  // 3. Merge Wedding Configs (Timestamp-based conflict resolution)
+  // 3. Merge Wedding Configs (Timestamp-based conflict resolution + alias sync)
   if (payload.weddingConfigs && typeof payload.weddingConfigs === 'object') {
     for (const [cid, incomingCfg] of Object.entries(payload.weddingConfigs)) {
-      if (incomingCfg && cid) {
+      if (incomingCfg && cid && cid !== 'system') {
         const existingCfg = db.weddingConfigs[cid];
         const incomingTs = getTs(incomingCfg);
         const existingTs = getTs(existingCfg);
 
-        // Only update if incoming is newer or equal
-        if (!existingCfg || incomingTs >= existingTs) {
-          const resolvedTs = Math.max(incomingTs, Date.now());
-          db.weddingConfigs[cid] = {
+        // Only update if incoming is newer (or config doesn't exist yet)
+        if (!existingCfg || incomingTs > existingTs) {
+          const resolvedTs = incomingTs || Date.now();
+          propagateConfigAliases(db, cid, {
             ...incomingCfg,
             updatedAt: resolvedTs
-          };
-
-          // Keep client object's config in sync if timestamp is higher
-          const client = db.clients.find(c => c.id === cid || c.config?.id === cid);
-          if (client && (incomingTs >= getTs(client))) {
-            client.config = db.weddingConfigs[cid];
-            client.updatedAt = resolvedTs;
-            if (incomingCfg.brideGroom?.groomName && incomingCfg.brideGroom?.brideName) {
-              client.clientName = `${incomingCfg.brideGroom.groomName} & ${incomingCfg.brideGroom.brideName}`;
-            }
-          }
+          });
         }
       }
     }
@@ -705,6 +871,7 @@ export function approveActivationRequest(requestId: string): { success: boolean;
     client.accessRevoked = false;
     client.plan = req.requestedPlan;
     client.revenue = req.amount || (req.requestedPlan === 'Luxury' ? 110000 : req.requestedPlan === 'Premium' ? 65000 : 35000);
+    client.updatedAt = Date.now();
     client.features = {
       allowWhatsAppAutomation: req.requestedPlan === 'Luxury' || req.requestedPlan === 'Premium',
       allowCollectiveAlbum: true,
@@ -860,11 +1027,12 @@ export function createOrRenewSubscription(data: {
   paymentPhone?: string;
   paymentReference?: string;
   autoRenew?: boolean;
-}): { success: boolean; subscription: RecurringSubscription } {
+}): { success: boolean; subscription: RecurringSubscription; client?: ClientWeddingSaaS } {
   const db = getServerDb();
-  const client = db.clients.find(c => c.id === data.clientId || c.config?.slug === data.clientId);
+  const client = resolveClientByIdOrSlug(db, data.clientId);
   const now = new Date();
-  const nextMonth = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+  const nowMs = now.getTime();
+  const nextMonth = new Date(nowMs + 30 * 24 * 3600 * 1000);
 
   if (!Array.isArray(db.subscriptions)) {
     db.subscriptions = [];
@@ -886,7 +1054,7 @@ export function createOrRenewSubscription(data: {
     existing.invoicesCount = (existing.invoicesCount || 1) + 1;
   } else {
     existing = {
-      id: 'sub_' + Date.now(),
+      id: 'sub_' + nowMs,
       clientId: client ? client.id : data.clientId,
       clientName: client ? client.clientName : 'Casal Assinante',
       clientEmail: client ? client.clientEmail : 'contato@kutxi.ao',
@@ -908,12 +1076,13 @@ export function createOrRenewSubscription(data: {
     db.subscriptions.push(existing);
   }
 
-  // Auto-renew client status to Active
+  // Auto-renew client status to Active and bump updatedAt so frontend clients state syncs immediately
   if (client) {
     client.status = 'Active';
     client.accessRevoked = false;
     client.plan = data.plan;
     client.revenue = (client.revenue || 0) + data.amountMonthly;
+    client.updatedAt = Math.max(nowMs, (Number(client.updatedAt) || 0) + 1);
     client.features = {
       allowWhatsAppAutomation: data.plan === 'Luxury' || data.plan === 'Premium',
       allowCollectiveAlbum: true,
@@ -923,7 +1092,7 @@ export function createOrRenewSubscription(data: {
   }
 
   db.auditLogs.unshift({
-    id: 'log_' + Date.now(),
+    id: 'log_' + nowMs,
     timestamp: now.toISOString(),
     actor: client?.clientName || 'Assinante',
     action: 'Assinatura Mensal Processada',
@@ -933,7 +1102,7 @@ export function createOrRenewSubscription(data: {
   });
 
   saveServerDb(db);
-  return { success: true, subscription: existing };
+  return { success: true, subscription: existing, client };
 }
 
 export function getSubscriptions(clientId?: string): RecurringSubscription[] {
@@ -947,41 +1116,141 @@ export function getSubscriptions(clientId?: string): RecurringSubscription[] {
 }
 
 /**
- * Processes automated recurring billing webhook from payment gateway (Multicaixa Express / EMIS / Webhook)
+ * Processes automated EMIS / Multicaixa Express billing webhooks.
+ * Strictly validates BILLING_WEBHOOK_SECRET, checks confirmation status,
+ * updates the client plan & Active status in clients state, and persists DB.
  */
 export function processBillingWebhook(
   event: string,
   payload: any,
   secretHeader?: string
-): { success: boolean; message: string; subscription?: RecurringSubscription } {
+): {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  subscription?: RecurringSubscription;
+  client?: ClientWeddingSaaS;
+} {
   const configuredSecret = (process.env.BILLING_WEBHOOK_SECRET || 'kutxi_billing_secret_2026').trim();
 
-  if (secretHeader && secretHeader !== configuredSecret) {
-    return { success: false, message: 'Assinatura / Secret do Webhook de Cobrança inválido.' };
+  if (!secretHeader || secretHeader.trim() !== configuredSecret) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: 'Assinatura / Secret do Webhook EMIS (BILLING_WEBHOOK_SECRET) ausente ou inválido.'
+    };
   }
 
-  const clientId = payload?.clientId || payload?.client_id || payload?.custom_fields?.clientId;
-  if (!clientId) {
-    return { success: false, message: 'Payload do webhook sem identificador de clientId.' };
+  const db = getServerDb();
+  const rawLookup =
+    payload?.clientId ||
+    payload?.client_id ||
+    payload?.merchantReference ||
+    payload?.merchant_reference ||
+    payload?.custom_fields?.clientId ||
+    payload?.metadata?.clientId ||
+    payload?.slug;
+
+  if (!rawLookup || typeof rawLookup !== 'string') {
+    return {
+      success: false,
+      statusCode: 400,
+      message: 'Payload do webhook sem identificador de clientId ou merchantReference.'
+    };
   }
 
-  const plan = payload?.plan || 'Luxury';
-  const amount = Number(payload?.amount) || (plan === 'Luxury' ? 110000 : plan === 'Premium' ? 65000 : 35000);
-  const paymentMethod = payload?.paymentMethod || payload?.channel || 'multicaixa_express';
+  const client = resolveClientByIdOrSlug(db, rawLookup);
+  if (!client) {
+    return {
+      success: false,
+      statusCode: 404,
+      message: `Cliente "${rawLookup}" não localizado no estado de clientes.`
+    };
+  }
+
+  const rawStatus = String(
+    payload?.status ||
+    payload?.paymentStatus ||
+    payload?.payment_status ||
+    payload?.state ||
+    event ||
+    ''
+  ).toLowerCase();
+
+  const rejectedStatuses = ['failed', 'declined', 'rejected', 'cancelled', 'canceled', 'expired', 'refunded'];
+  if (rejectedStatuses.some(st => rawStatus.includes(st))) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: `Webhook EMIS recebido com status não confirmado (${rawStatus}). Plano não alterado.`
+    };
+  }
+
+  const confirmedMarkers = [
+    'confirmed',
+    'paid',
+    'succeeded',
+    'completed',
+    'approved',
+    'accepted',
+    'active',
+    'recurring_monthly_charge',
+    'invoice.payment_succeeded',
+    'subscription.confirmed',
+    'payment.confirmed',
+    'emis.payment.confirmed'
+  ];
+  const isConfirmed =
+    confirmedMarkers.some(marker => rawStatus.includes(marker)) ||
+    (!payload?.status && !payload?.paymentStatus && confirmedMarkers.some(marker => event.toLowerCase().includes(marker)));
+
+  if (!isConfirmed) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: `Status de pagamento "${rawStatus || event}" ainda pendente de confirmação EMIS.`
+    };
+  }
+
+  const normalizedPlanInput = String(payload?.plan || payload?.subscriptionPlan || payload?.tier || '').trim();
+  const amountFromPayload = Number(payload?.amount || payload?.totalAmount || 0);
+  const resolvedPlan: 'Basic' | 'Premium' | 'Luxury' | 'Enterprise' =
+    normalizedPlanInput === 'Enterprise' ? 'Enterprise' :
+    normalizedPlanInput === 'Luxury' ? 'Luxury' :
+    normalizedPlanInput === 'Premium' ? 'Premium' :
+    normalizedPlanInput === 'Basic' ? 'Basic' :
+    amountFromPayload >= 200000 ? 'Enterprise' :
+    amountFromPayload >= 100000 ? 'Luxury' :
+    amountFromPayload >= 55000 ? 'Premium' :
+    client.plan || 'Luxury';
+
+  const planDefaults: Record<string, number> = {
+    Basic: 35000,
+    Premium: 65000,
+    Luxury: 110000,
+    Enterprise: 220000
+  };
+  const amount = amountFromPayload > 0 ? amountFromPayload : (planDefaults[resolvedPlan] || 110000);
+  const paymentMethod: 'multicaixa_express' | 'credit_card' | 'bank_reference' =
+    payload?.paymentMethod === 'credit_card' || payload?.channel === 'credit_card' ? 'credit_card' :
+    payload?.paymentMethod === 'bank_reference' || payload?.channel === 'bank_reference' ? 'bank_reference' :
+    'multicaixa_express';
 
   const result = createOrRenewSubscription({
-    clientId,
-    plan,
+    clientId: client.id,
+    plan: resolvedPlan,
     amountMonthly: amount,
     paymentMethod,
     paymentPhone: payload?.phone || payload?.msisdn,
-    paymentReference: payload?.reference || payload?.transaction_id || `TX-${Date.now()}`
+    paymentReference: payload?.emisReference || payload?.reference || payload?.transactionId || payload?.transaction_id || `EMIS-${Date.now()}`
   });
 
   return {
     success: true,
-    message: `Evento "${event}" processado com sucesso. Assinatura renovada até ${result.subscription.nextBillingDate}.`,
-    subscription: result.subscription
+    statusCode: 200,
+    message: `Webhook EMIS "${event}" confirmado! Plano ${resolvedPlan} ativado para "${client.clientName}" até ${result.subscription.nextBillingDate}.`,
+    subscription: result.subscription,
+    client: result.client
   };
 }
 

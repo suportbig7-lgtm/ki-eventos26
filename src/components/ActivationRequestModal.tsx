@@ -22,7 +22,7 @@ export default function ActivationRequestModal({
   onRequestSubmitted
 }: ActivationRequestModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<'Basic' | 'Premium' | 'Luxury'>('Premium');
-  const [paymentMethod, setPaymentMethod] = useState<'mcx' | 'iban' | 'cash'>('mcx');
+  const [paymentMethod, setPaymentMethod] = useState<'mcx' | 'iban' | 'cash'>('iban');
   const [paymentRef, setPaymentRef] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
@@ -206,37 +206,18 @@ export default function ActivationRequestModal({
                 </span>
               </div>
 
-              {/* MCX */}
-              <div className="flex items-center justify-between bg-white dark:bg-stone-900 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 text-emerald-600" />
-                  <div>
-                    <div className="text-[10px] text-stone-500 font-medium">Multicaixa Express (MCX)</div>
-                    <div className="font-mono font-bold text-stone-900 dark:text-white text-xs">923 456 789</div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard('923456789', 'mcx')}
-                  className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>{copiedField === 'mcx' ? 'Copiado!' : 'Copiar'}</span>
-                </button>
-              </div>
-
-              {/* IBAN */}
+              {/* IBAN BFA */}
               <div className="flex items-center justify-between bg-white dark:bg-stone-900 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-indigo-600" />
                   <div>
-                    <div className="text-[10px] text-stone-500 font-medium">IBAN BAI / BFA (Ki-Eventos Lda)</div>
-                    <div className="font-mono font-bold text-stone-900 dark:text-white text-[11px]">AO06 0040 0000 1234 5678 9012 3</div>
+                    <div className="text-[10px] text-stone-500 font-medium">BFA — Banco de Fomento Angola · Agência Talatona (0042)</div>
+                    <div className="font-mono font-bold text-stone-900 dark:text-white text-[11px]">AO06 0006 0042 0001 9472 0090 1</div>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard('AO06004000001234567890123', 'iban')}
+                  onClick={() => copyToClipboard('AO06000600420001947200901', 'iban')}
                   className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
                 >
                   <Copy className="w-3 h-3" />
@@ -288,7 +269,7 @@ export default function ActivationRequestModal({
                 </label>
                 <input
                   type="tel"
-                  placeholder="Ex: +244 923 000 000"
+                  placeholder="Ex: +244 9XX XXX XXX"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-stone-900 dark:text-white text-xs"

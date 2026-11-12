@@ -775,7 +775,7 @@ export default function GuestManager({
                     <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">WhatsApp / Telefone</label>
                     <input
                       type="tel"
-                      placeholder="+244 923 000 000"
+                      placeholder="+244 9XX XXX XXX"
                       value={newGuest.phone}
                       onChange={e => setNewGuest(prev => ({ ...prev, phone: e.target.value }))}
                       className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-rose-800 font-mono"

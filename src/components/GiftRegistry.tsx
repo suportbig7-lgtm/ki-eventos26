@@ -29,7 +29,7 @@ const PRESET_GIFTS: Omit<WeddingRegistryItem, 'id'>[] = [
     price: 85000,
     category: 'lua_de_mel',
     description: 'Passeio romântico privativo de lancha pela costa marítima de Luanda.',
-    imageUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/assets/aistudio/galeria_do_casal_0790376f.jpeg',
     status: 'disponivel'
   },
   {
@@ -37,7 +37,7 @@ const PRESET_GIFTS: Omit<WeddingRegistryItem, 'id'>[] = [
     price: 75000,
     category: 'lua_de_mel',
     description: 'Jantar à luz de velas a dois com degustação gastronômica na Ilha do Cabo.',
-    imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/assets/aistudio/foto_do_casal_c43a7ce0.jpeg',
     status: 'disponivel'
   },
   {
@@ -45,7 +45,7 @@ const PRESET_GIFTS: Omit<WeddingRegistryItem, 'id'>[] = [
     price: 490000,
     category: 'eletro',
     description: 'Para manhãs cheias de energia e cafés especiais para receber os convidados.',
-    imageUrl: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/assets/aistudio/capa_eeb23baf.jpeg',
     status: 'disponivel'
   },
   {
@@ -53,7 +53,7 @@ const PRESET_GIFTS: Omit<WeddingRegistryItem, 'id'>[] = [
     price: 250000,
     category: 'eletro',
     description: 'Perfeita para preparar doces, bolos e massas especiais.',
-    imageUrl: 'https://images.unsplash.com/photo-1594385208974-2e75f9d8a8be?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/assets/aistudio/galeria_do_casal_2_026437d5.jpeg',
     status: 'disponivel'
   },
   {
@@ -61,7 +61,7 @@ const PRESET_GIFTS: Omit<WeddingRegistryItem, 'id'>[] = [
     price: 380000,
     category: 'cozinha',
     description: 'Conjunto completo com pratos rasos, fundos, sobremesa e xícaras de café.',
-    imageUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/assets/aistudio/galeria_do_casal1_aefb2fb2.jpeg',
     status: 'disponivel'
   },
   {
@@ -69,7 +69,7 @@ const PRESET_GIFTS: Omit<WeddingRegistryItem, 'id'>[] = [
     price: 310000,
     category: 'cozinha',
     description: 'Conjunto durável com caçarolas e frigideiras de alta performance.',
-    imageUrl: 'https://images.unsplash.com/photo-1584990347449-a29283f3e1b1?auto=format&fit=crop&q=80&w=400',
+    imageUrl: '/assets/aistudio/nossa_historia_0790376f.jpeg',
     status: 'disponivel'
   }
 ];
@@ -102,13 +102,13 @@ export default function GiftRegistry({ config, onUpdateConfig }: GiftRegistryPro
   });
 
   const [bankFormData, setBankFormData] = useState({
-    multicaixaPhone: config.giftRegistry?.multicaixaPhone || '+244 923 000 000',
+    multicaixaPhone: config.giftRegistry?.multicaixaPhone || '',
     iban: config.giftRegistry?.iban || 'AO06 0006 0042 0001 9472 0090 1',
-    bankName: config.giftRegistry?.bankName || 'BFA - Banco de Fomento Angola',
+    bankName: config.giftRegistry?.bankName || 'BFA — Banco de Fomento Angola',
     bankAccount: config.giftRegistry?.bankAccount || '194720090',
     accountHolder: config.giftRegistry?.accountHolder || `${config.brideGroom?.groomName || 'Noivo'} & ${config.brideGroom?.brideName || 'Noiva'}`,
-    pixKey: config.giftRegistry?.pixKey || '+244 923 000 000',
-    customInstructions: config.giftRegistry?.customInstructions || 'As transferências podem ser efetuadas via Multicaixa Express ou IBAN bancário direto.'
+    pixKey: config.giftRegistry?.pixKey || '',
+    customInstructions: config.giftRegistry?.customInstructions || 'As transferências podem ser efetuadas via IBAN bancário direto (BFA).'
   });
 
   const getItemStatus = (item: WeddingRegistryItem): 'disponivel' | 'reservado' | 'recebido' => {
@@ -188,7 +188,7 @@ export default function GiftRegistry({ config, onUpdateConfig }: GiftRegistryPro
       price: '',
       category: 'eletro',
       description: '',
-      imageUrl: 'https://images.unsplash.com/photo-1584990347449-a29283f3e1b1?auto=format&fit=crop&q=80&w=400',
+      imageUrl: '',
       status: 'disponivel',
       claimedBy: '',
       claimedPhone: '',
@@ -228,7 +228,7 @@ export default function GiftRegistry({ config, onUpdateConfig }: GiftRegistryPro
       price: priceNum,
       category: formData.category,
       description: formData.description.trim(),
-      imageUrl: formData.imageUrl.trim() || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=400',
+      imageUrl: formData.imageUrl.trim() || '/assets/aistudio/capa_eeb23baf.jpeg',
       status: formData.status,
       claimedBy: formData.status !== 'disponivel' ? formData.claimedBy.trim() || 'Convidado' : undefined,
       claimedPhone: formData.status !== 'disponivel' ? formData.claimedPhone.trim() : undefined,
@@ -726,10 +726,10 @@ export default function GiftRegistry({ config, onUpdateConfig }: GiftRegistryPro
 
               <form onSubmit={handleSaveBankInfo} className="p-6 space-y-3.5 text-xs">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block">Número Multicaixa Express (Telefone)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block">Número Multicaixa Express (Opcional)</label>
                   <input
                     type="text"
-                    required
+                    placeholder="+244 9XX XXX XXX"
                     value={bankFormData.multicaixaPhone}
                     onChange={e => setBankFormData({ ...bankFormData, multicaixaPhone: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white font-mono"

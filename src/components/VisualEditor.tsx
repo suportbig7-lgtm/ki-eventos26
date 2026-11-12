@@ -10,6 +10,7 @@ import { THEME_PRESETS } from '../data/defaultConfig';
 import { compressImage } from '../utils/imageCompressor';
 import { downloadPhysicalCardQrPdf } from '../utils/pdfGenerator';
 import { downloadQrCodeImage } from '../utils/qrCodeHelper';
+import { buildPortableInviteLink } from '../utils/portableLink';
 import PublicInvite from './PublicInvite';
 
 interface VisualEditorProps {
@@ -818,7 +819,7 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
                       </span>
                       <div className="flex flex-col sm:flex-row items-center gap-4">
                         <img 
-                          src={editorConfig.media?.storyImage || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=400'} 
+                          src={editorConfig.media?.storyImage || '/assets/aistudio/nossa_historia_0790376f.jpeg'} 
                           alt="Story" 
                           className="w-24 h-24 rounded-2xl object-cover border-2 border-stone-200 dark:border-stone-700 shrink-0" 
                         />
@@ -876,7 +877,7 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
                       <div className="space-y-3">
                         <div className="w-full h-44 rounded-2xl overflow-hidden border-2 border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800">
                           <img 
-                            src={editorConfig.media?.coverImage || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200'} 
+                            src={editorConfig.media?.coverImage || '/assets/aistudio/capa_eeb23baf.jpeg'} 
                             alt="Capa" 
                             className="w-full h-full object-cover" 
                           />
@@ -1026,7 +1027,7 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
                           type="button"
                           onClick={() => {
                             const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                            const link = `${origin}/?invite=convite&clientId=${editorConfig.clientId || 'client_1'}`;
+                            const link = buildPortableInviteLink(editorConfig, origin);
                             const groom = editorConfig.brideGroom?.groomName || 'Noivo';
                             const bride = editorConfig.brideGroom?.brideName || 'Noiva';
                             downloadQrCodeImage(link, `QRCode_Grafica_${groom}_e_${bride}.png`, 1200, '#1c1917');
@@ -1040,7 +1041,7 @@ export default function VisualEditor({ config, onSave }: VisualEditorProps) {
                           type="button"
                           onClick={() => {
                             const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                            const link = `${origin}/?invite=convite&clientId=${editorConfig.clientId || 'client_1'}`;
+                            const link = buildPortableInviteLink(editorConfig, origin);
                             downloadPhysicalCardQrPdf(editorConfig, link);
                           }}
                           className="px-4 py-2.5 bg-white dark:bg-stone-800 border-2 border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-50 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-xs transition-all"

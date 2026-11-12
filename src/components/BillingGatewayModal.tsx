@@ -6,7 +6,7 @@ interface BillingGatewayModalProps {
   isOpen: boolean;
   onClose: () => void;
   client: ClientWeddingSaaS;
-  onSubscriptionUpdated?: (subscription: RecurringSubscription) => void;
+  onSubscriptionUpdated?: (subscription: RecurringSubscription, updatedClient?: ClientWeddingSaaS) => void;
 }
 
 export const BillingGatewayModal: React.FC<BillingGatewayModalProps> = ({
@@ -19,8 +19,8 @@ export const BillingGatewayModal: React.FC<BillingGatewayModalProps> = ({
     client.plan === 'Basic' || client.plan === 'Premium' || client.plan === 'Luxury' ? client.plan : 'Luxury'
   );
   const [paymentMethod, setPaymentMethod] = useState<'multicaixa_express' | 'credit_card' | 'bank_reference'>('multicaixa_express');
-  const [mcxPhone, setMcxPhone] = useState(client.config?.contactInfo?.phone || '+244 923 888 777');
-  const [cardNumber, setCardNumber] = useState('•••• •••• •••• 4242');
+  const [mcxPhone, setMcxPhone] = useState(client.config?.giftRegistry?.multicaixaPhone || client.config?.contactInfo?.phone || '');
+  const [cardNumber, setCardNumber] = useState('');
   const [cardHolder, setCardHolder] = useState(client.clientName);
   const [autoRenew, setAutoRenew] = useState(true);
 
@@ -142,7 +142,12 @@ export const BillingGatewayModal: React.FC<BillingGatewayModalProps> = ({
       if (result.success && result.subscription) {
         setCurrentSubscription(result.subscription);
         setSuccessMessage(`Assinatura mensal do plano ${selectedPlan} ativada com sucesso! Próxima fatura em ${result.subscription.nextBillingDate}.`);
-        onSubscriptionUpdated?.(result.subscription);
+        onSubscriptionUpdated?.(result.subscription, result.client);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('kutxi_subscription_updated', {
+            detail: { subscription: result.subscription, client: result.client }
+          }));
+        }
       } else {
         setErrorMessage(result.error || 'Falha ao processar pagamento.');
       }
@@ -153,43 +158,43 @@ export const BillingGatewayModal: React.FC<BillingGatewayModalProps> = ({
     }
   };
 
-  // Simulate automated webhook recurring charge
+  // Trigger server-side EMIS webhook handler without exposing webhook secret in frontend bundle
   const handleSimulateWebhook = async () => {
     setIsLoading(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
-      const res = await fetch('/api/webhooks/billing', {
+      const res = await fetch('/api/billing/emis/simulate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-kutxi-webhook-secret': 'kutxi_billing_secret_2026'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          event: 'invoice.payment_succeeded',
-          type: 'recurring_monthly_charge',
-          data: {
-            clientId: client.id,
-            plan: selectedPlan,
-            amount: planPrices[selectedPlan],
-            paymentMethod,
-            phone: mcxPhone,
-            transaction_id: `TX-MCX-${Date.now()}`
-          }
+          clientId: client.id,
+          plan: selectedPlan,
+          amount: planPrices[selectedPlan],
+          paymentMethod,
+          phone: mcxPhone,
+          transactionId: `EMIS-${Date.now()}`
         })
       });
 
       const data = await res.json();
       if (data.received && data.subscription) {
         setCurrentSubscription(data.subscription);
-        setSuccessMessage(`Webhook de cobrança mensal executado! Licença renovada automaticamente.`);
-        onSubscriptionUpdated?.(data.subscription);
+        setSuccessMessage(`Webhook EMIS confirmado! Plano ${selectedPlan} ativado e sincronizado.`);
+        onSubscriptionUpdated?.(data.subscription, data.client);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('kutxi_subscription_updated', {
+            detail: { subscription: data.subscription, client: data.client }
+          }));
+        }
       } else {
-        setErrorMessage(data.message || 'Falha na resposta do webhook.');
+        setErrorMessage(data.message || 'Falha na resposta do webhook EMIS.');
       }
     } catch (err: any) {
-      setErrorMessage(`Erro no webhook: ${err.message}`);
+      setErrorMessage(`Erro no webhook EMIS: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -362,6 +367,7 @@ export const BillingGatewayModal: React.FC<BillingGatewayModalProps> = ({
                 <input
                   type="text"
                   value={cardNumber}
+                  placeholder="0000 0000 0000 0000"
                   onChange={e => setCardNumber(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#8E2840]"
                 />
@@ -381,12 +387,12 @@ export const BillingGatewayModal: React.FC<BillingGatewayModalProps> = ({
           {paymentMethod === 'bank_reference' && (
             <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 space-y-2 text-xs">
               <div className="flex justify-between font-mono">
-                <span className="text-stone-600 dark:text-stone-300">Entidade:</span>
-                <span className="font-bold">00142 (EMIS Angola)</span>
+                <span className="text-stone-600 dark:text-stone-300">Banco / IBAN BFA:</span>
+                <span className="font-bold">AO06 0006 0042 0001 9472 0090 1</span>
               </div>
               <div className="flex justify-between font-mono">
-                <span className="text-stone-600 dark:text-stone-300">Referência Mensal:</span>
-                <span className="font-bold text-[#8E2840] dark:text-rose-400">987 213 456</span>
+                <span className="text-stone-600 dark:text-stone-300">Referência de Pedido:</span>
+                <span className="font-bold text-[#8E2840] dark:text-rose-400">EMIS-{client.id.slice(-6).toUpperCase()}</span>
               </div>
               <div className="flex justify-between font-mono">
                 <span className="text-stone-600 dark:text-stone-300">Valor a Pagar:</span>

@@ -68,8 +68,8 @@ function sanitizeUrlForPayload(url: string | undefined): string | undefined {
   if (!url || typeof url !== 'string') return undefined;
   const trimmed = url.trim();
   // Strictly disallow base64 data URIs from payload to prevent URL blowout
-  if (trimmed.startsWith('data:')) return undefined;
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+  if (trimmed.startsWith('data:') || trimmed.includes('images.unsplash.com')) return undefined;
+  if (trimmed.startsWith('/assets/') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed.length < 220 ? trimmed : undefined;
   }
   return undefined;
@@ -282,7 +282,7 @@ export function decodeWeddingPayload(payloadStr: string): WeddingConfig | null {
             totalCollected: 0,
             category: i.c || 'mesa',
             description: 'Contribuição especial para o casal.',
-            imageUrl: i.img || 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=400',
+            imageUrl: i.img || '/assets/aistudio/capa_eeb23baf.jpeg',
             status: 'disponivel' as const,
             contributors: []
           }))
@@ -374,10 +374,10 @@ export function getPublicCanonicalOrigin(customBase?: string): string {
 }
 
 /**
- * Builds a clean, portable invitation URL utilizing friendly slugs and hashes.
- * Format: https://domain/?invite=joao-alice (with optional compact payload for cross-domain resilience)
+ * Builds a clean, portable invitation URL utilizing friendly slugs.
+ * Format: https://domain/?invite=joao-alice (with optional &token=guestToken)
  */
-export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string): string {
+export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string, guestToken?: string): string {
   const origin = getPublicCanonicalOrigin(baseUrl);
   let resolvedId = config.clientId || config.id || 'client_joao_alice';
   if (resolvedId === 'system') {
@@ -389,9 +389,11 @@ export function buildPortableInviteLink(config: WeddingConfig, baseUrl?: string)
     slug = resolvedId === 'client_joao_alice' ? 'joao-alice' : resolvedId.replace(/^client_/, '');
   }
 
-  // Format: https://domain/?invite=joao-alice
   const url = new URL(`${origin}/`);
   url.searchParams.set('invite', slug);
+  if (guestToken && guestToken.trim()) {
+    url.searchParams.set('token', guestToken.trim());
+  }
   return url.toString();
 }
 
@@ -426,9 +428,7 @@ export function hydrateFromUrlPayload(search?: string): { config: WeddingConfig;
     if (!decoded) return null;
 
     const resolvedCid = decoded.clientId || decoded.id || 'client_joao_alice';
-
     safeSetItem(`kutxi_wedding_config_${resolvedCid}`, JSON.stringify(decoded));
-    safeSetItem('kutxi_active_client_id', resolvedCid);
 
     return { config: decoded, clientId: resolvedCid };
   } catch (e) {
